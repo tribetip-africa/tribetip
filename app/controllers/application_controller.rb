@@ -4,9 +4,8 @@ class ApplicationController < ActionController::API
 
   private
 
-  # Devise integrates through current_user when available.
   def user_for_paper_trail
-    return current_user.id if respond_to?(:current_user, true) && current_user.present?
+    return current_tribe.id if respond_to?(:current_tribe, true) && current_tribe.present?
 
     "system"
   end
