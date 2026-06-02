@@ -18,10 +18,12 @@ gem "thruster", require: false
 # gem "image_processing", "~> 1.2"
 
 gem "rack-cors"
+gem "rack-attack"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false
+  gem "bundler-audit", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
   gem "rubocop", "~> 1.87"
