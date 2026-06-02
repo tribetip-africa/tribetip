@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_02_120637) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_02_123500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -24,8 +24,35 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_02_120637) do
     t.datetime "remember_created_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "username"
+    t.string "display_name"
+    t.text "bio"
+    t.string "country_code", default: "NG", null: false
+    t.string "currency", default: "NGN", null: false
+    t.integer "default_tip_amount_cents", default: 50000, null: false
+    t.string "account_status", default: "pending", null: false
+    t.boolean "is_profile_public", default: false, null: false
+    t.datetime "onboarding_completed_at"
+    t.datetime "terms_accepted_at"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unconfirmed_email"
+    t.integer "failed_attempts", default: 0, null: false
+    t.string "unlock_token"
+    t.datetime "locked_at"
+    t.index ["account_status"], name: "index_tribes_on_account_status"
+    t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
+    t.index ["country_code"], name: "index_tribes_on_country_code"
     t.index ["email"], name: "index_tribes_on_email", unique: true
     t.index ["reset_password_token"], name: "index_tribes_on_reset_password_token", unique: true
+    t.index ["unlock_token"], name: "index_tribes_on_unlock_token", unique: true
+    t.index ["username"], name: "index_tribes_on_username", unique: true, where: "(username IS NOT NULL)"
   end
 
   create_table "versions", force: :cascade do |t|
