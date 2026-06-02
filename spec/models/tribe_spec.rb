@@ -7,11 +7,11 @@ RSpec.describe Tribe, type: :model do
     it { expect(devise_modules).to include(:database_authenticatable) }
     it { expect(devise_modules).to include(:registerable) }
     it { expect(devise_modules).to include(:recoverable) }
-    it { expect(devise_modules).to include(:rememberable) }
     it { expect(devise_modules).to include(:validatable) }
     it { expect(devise_modules).to include(:confirmable) }
     it { expect(devise_modules).to include(:lockable) }
     it { expect(devise_modules).to include(:trackable) }
+    it { expect(devise_modules).to include(:jwt_authenticatable) }
   end
 
   describe "validations" do
