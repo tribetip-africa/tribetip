@@ -27,8 +27,8 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Skip http-to-https redirect for liveness checks handled by load balancers.
+  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -77,11 +77,13 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Set APP_HOSTS as comma-separated values, for example:
+  # APP_HOSTS=api.tribetip.africa,tribetip.africa
+  config.hosts = ENV.fetch("APP_HOSTS", "")
+                    .split(",")
+                    .map(&:strip)
+                    .reject(&:empty?)
+
+  # Allow health checks even when host authorization is strict.
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end

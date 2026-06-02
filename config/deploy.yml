@@ -53,6 +53,12 @@ env:
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
+    # Allowed browser origins for API CORS (comma-separated).
+    # CORS_ALLOWED_ORIGINS: https://app.tribetip.africa,https://admin.tribetip.africa
+
+    # Allowed Host headers for Rails host authorization (comma-separated).
+    # APP_HOSTS: api.tribetip.africa,tribetip.africa
+
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal logs -r job" will tail logs from the first server in the job section.
 aliases:
