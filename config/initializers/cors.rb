@@ -12,7 +12,7 @@ allowed_origins = ENV.fetch("CORS_ALLOWED_ORIGINS", "")
 
 if allowed_origins.empty?
   # Keep development usable while defaulting to deny-all elsewhere.
-  allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"] if Rails.env.development?
+  allowed_origins = [ "http://localhost:3000", "http://127.0.0.1:3000" ] if Rails.env.development?
 end
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
