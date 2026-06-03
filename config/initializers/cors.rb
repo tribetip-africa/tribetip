@@ -1,18 +1,17 @@
 # Be sure to restart your server when you modify this file.
 
+require Rails.root.join("lib/tribetip/platform")
+
 # Avoid CORS issues when API is called from the frontend app.
 # Handle Cross-Origin Resource Sharing (CORS) in order to accept cross-origin Ajax requests.
 
 # Read more: https://github.com/cyu/rack-cors
 
-allowed_origins = ENV.fetch("CORS_ALLOWED_ORIGINS", "")
-                     .split(",")
-                     .map(&:strip)
-                     .reject(&:empty?)
+allowed_origins = Tribetip::Platform.cors_origins
 
-if allowed_origins.empty?
-  # Keep development usable while defaulting to deny-all elsewhere.
-  allowed_origins = [ "http://localhost:3000", "http://127.0.0.1:3000" ] if Rails.env.development?
+if allowed_origins.empty? && !Rails.env.development?
+  # Deny cross-origin browser calls outside development unless explicitly configured.
+  allowed_origins = []
 end
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
@@ -21,6 +20,7 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 
     resource "*",
       headers: :any,
+      expose: [ "Authorization" ],
       methods: %i[get post put patch delete options head],
       max_age: 600
   end
