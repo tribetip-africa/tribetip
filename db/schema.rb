@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_02_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_02_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -19,7 +19,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_02_140000) do
   create_table "jwt_denylists", force: :cascade do |t|
     t.string "jti", null: false
     t.datetime "exp", null: false
-    t.index ["jti"], name: "index_jwt_denylists_on_jti"
+    t.index ["exp"], name: "index_jwt_denylists_on_exp"
+    t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
   end
 
   create_table "tribes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -54,6 +55,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_02_140000) do
     t.datetime "locked_at"
     t.index ["account_status"], name: "index_tribes_on_account_status"
     t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
+    t.index ["confirmed_at"], name: "index_tribes_on_confirmed_at", where: "(confirmed_at IS NOT NULL)"
+    t.index ["country_code", "username"], name: "index_tribes_active_public_by_country", where: "((is_profile_public = true) AND ((account_status)::text = 'active'::text))"
     t.index ["country_code"], name: "index_tribes_on_country_code"
     t.index ["email"], name: "index_tribes_on_email", unique: true
     t.index ["reset_password_token"], name: "index_tribes_on_reset_password_token", unique: true
@@ -72,6 +75,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_02_140000) do
     t.string "request_id"
     t.string "ip"
     t.string "user_agent"
+    t.index ["created_at"], name: "index_versions_on_created_at"
+    t.index ["item_type", "item_id", "created_at"], name: "index_versions_on_item_type_item_id_and_created_at"
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
     t.index ["request_id"], name: "index_versions_on_request_id"
   end
