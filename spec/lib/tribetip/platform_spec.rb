@@ -64,10 +64,7 @@ RSpec.describe Tribetip::Platform do
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
 
       with_env("CORS_ALLOWED_ORIGINS" => nil, "TRIBETIP_PLATFORM_URL" => nil) do
-        expect(described_class.cors_origins).to contain_exactly(
-          "http://localhost:3000",
-          "http://127.0.0.1:3000"
-        )
+        expect(described_class.cors_origins).to contain_exactly("http://localhost:3000", "http://127.0.0.1:3000")
       end
     end
   end
