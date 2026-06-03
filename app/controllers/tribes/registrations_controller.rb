@@ -1,20 +1,31 @@
 module Tribes
   class RegistrationsController < Devise::RegistrationsController
+    include DatabaseRouting
+    include SecureHttpCaching
+
     respond_to :json
 
     def create
+      apply_http_cache_policy(:no_store)
       build_resource(sign_up_params)
-      resource.skip_confirmation!
+      resource.skip_confirmation! unless Tribetip::Security.require_email_confirmation?
       resource.save
 
       if resource.persisted?
+        message = if resource.confirmed?
+          "Signed up successfully."
+        else
+          "Signed up successfully. Please confirm your email before signing in."
+        end
+
         render json: {
-          message: "Signed up successfully.",
+          message: message,
           tribe: {
             id: resource.id,
             email: resource.email,
             username: resource.username
-          }
+          },
+          confirmation_required: !resource.confirmed?
         }, status: :created
       else
         render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
