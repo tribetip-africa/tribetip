@@ -35,6 +35,8 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    - DEVISE_JWT_SECRET_KEY
+    - TRIBETIP_DATABASE_PASSWORD
   clear:
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
@@ -46,22 +48,22 @@ env:
     # Set number of cores available to the application on each server (default: 1).
     # WEB_CONCURRENCY: 2
 
-    # Match this to any external database server to configure Active Record correctly
-    # Use tribetip-db for a db accessory server on same machine via local kamal docker network.
+    # Primary PostgreSQL (writes + migrations).
     # DB_HOST: 192.168.0.2
+    # DB_DATABASE: tribetip_production
+    # DB_USERNAME: tribetip
+
+    # Read replica (reads). Defaults to DB_HOST when unset.
+    # DB_REPLICA_HOST: 192.168.0.3
 
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
-    # Platform URLs (production defaults if unset):
-    # TRIBETIP_PLATFORM_URL: https://tribetip.africa
-    # TRIBETIP_API_URL: https://api.tribetip.africa
-
-    # Allowed browser origins for API CORS (defaults to TRIBETIP_PLATFORM_URL).
-    # CORS_ALLOWED_ORIGINS: https://tribetip.africa
-
-    # Allowed Host headers for Rails host authorization (comma-separated).
-    # APP_HOSTS: api.tribetip.africa,tribetip.africa
+    TRIBETIP_PLATFORM_URL: https://tribetip.africa
+    TRIBETIP_API_URL: https://api.tribetip.africa
+    CORS_ALLOWED_ORIGINS: https://tribetip.africa
+    APP_HOSTS: api.tribetip.africa,tribetip.africa
+    TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "true"
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal logs -r job" will tail logs from the first server in the job section.
