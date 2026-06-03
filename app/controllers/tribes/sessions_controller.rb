@@ -17,8 +17,11 @@ module Tribes
     end
 
     def tribe_payload(tribe)
+      token, _payload = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
+
       {
         message: "Signed in successfully.",
+        token: token,
         tribe: {
           id: tribe.id,
           email: tribe.email,
