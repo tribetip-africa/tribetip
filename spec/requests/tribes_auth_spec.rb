@@ -72,6 +72,12 @@ RSpec.describe "Tribes JWT authentication", type: :request do
       expect(response.headers["Authorization"]).to start_with("Bearer ")
     end
 
+    it "returns a bearer token in the response body" do
+      sign_in_tribe
+
+      expect(json["token"]).to be_present
+    end
+
     it "returns unauthorized for invalid credentials" do
       sign_in_tribe(password: "wrong-password")
 
