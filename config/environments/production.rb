@@ -75,6 +75,9 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  config.active_record.query_log_tags_enabled = true
+  config.active_record.query_log_tags = [ :application, :database_role ]
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Set APP_HOSTS as comma-separated values, for example:
   # APP_HOSTS=api.tribetip.africa,tribetip.africa
