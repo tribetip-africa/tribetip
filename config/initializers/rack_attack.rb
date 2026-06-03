@@ -12,6 +12,15 @@ class Rack::Attack
     end
   end
 
+  # Limit public profile enumeration.
+  throttle(
+    "public_profiles/ip",
+    limit: ENV.fetch("RACK_ATTACK_PUBLIC_PROFILE_LIMIT", 60).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.ip if req.get? && req.path.match?(%r{\A/tribes/[a-z0-9_]+\z})
+  end
+
   self.throttled_responder = lambda do |_request|
     [ 429, { "Content-Type" => "application/json" }, [ { error: "Too many requests" }.to_json ] ]
   end
