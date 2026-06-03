@@ -53,8 +53,12 @@ env:
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
-    # Allowed browser origins for API CORS (comma-separated).
-    # CORS_ALLOWED_ORIGINS: https://app.tribetip.africa,https://admin.tribetip.africa
+    # Platform URLs (production defaults if unset):
+    # TRIBETIP_PLATFORM_URL: https://tribetip.africa
+    # TRIBETIP_API_URL: https://api.tribetip.africa
+
+    # Allowed browser origins for API CORS (defaults to TRIBETIP_PLATFORM_URL).
+    # CORS_ALLOWED_ORIGINS: https://tribetip.africa
 
     # Allowed Host headers for Rails host authorization (comma-separated).
     # APP_HOSTS: api.tribetip.africa,tribetip.africa
