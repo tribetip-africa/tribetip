@@ -23,6 +23,7 @@ class Tribe < ApplicationRecord
   ]
 
   before_validation :normalize_username
+  after_commit :purge_public_profile_cache, on: %i[update destroy]
 
   validates :username, presence: true,
                        format: { with: /\A[a-z0-9_]+\z/ },
@@ -35,9 +36,27 @@ class Tribe < ApplicationRecord
   validates :default_tip_amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :account_status, inclusion: { in: VALID_ACCOUNT_STATUSES }
 
+  def self.find_for_database_authentication(warden_conditions)
+    login = warden_conditions[:login].to_s.strip.downcase
+    return nil if login.blank?
+
+    if login.include?("@")
+      find_by(email: login)
+    else
+      find_by(username: login)
+    end
+  end
+
   private
 
   def normalize_username
     self.username = username.to_s.strip.downcase.presence
+  end
+
+  def purge_public_profile_cache
+    return if username.blank?
+
+    Tribetip::SecureCache.delete(Tribetip::SecureCache.public_profile_key(username))
+    Tribetip::SecureCache.bump_version!(:public) if saved_change_to_username?
   end
 end
