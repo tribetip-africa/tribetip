@@ -25,8 +25,8 @@ RSpec.describe "Tribes JWT authentication", type: :request do
     post "/tribes.json", params: { tribe: valid_tribe_params(overrides) }, as: :json
   end
 
-  def sign_in_tribe(email: "auth-test@tribetip.africa", password: "securepass123")
-    post "/tribes/sign_in.json", params: { tribe: { email: email, password: password } }, as: :json
+  def sign_in_tribe(login: "auth-test@tribetip.africa", password: "securepass123")
+    post "/tribes/sign_in.json", params: { tribe: { login: login, password: password } }, as: :json
   end
 
   describe "POST /tribes" do
@@ -48,6 +48,12 @@ RSpec.describe "Tribes JWT authentication", type: :request do
       }, as: :json
 
       expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "sets no-store cache headers on sign-up responses" do
+      register_tribe(username: "cache_signup_user")
+
+      expect(response.headers["Cache-Control"]).to include("no-store")
     end
   end
 
@@ -78,10 +84,30 @@ RSpec.describe "Tribes JWT authentication", type: :request do
       expect(json["token"]).to be_present
     end
 
+    it "sets no-store cache headers on auth responses" do
+      sign_in_tribe
+
+      expect(response.headers["Cache-Control"]).to include("no-store")
+    end
+
     it "returns unauthorized for invalid credentials" do
       sign_in_tribe(password: "wrong-password")
 
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "signs in with username instead of email" do
+      sign_in_tribe(login: "auth_test_tribe")
+
+      expect(response).to have_http_status(:ok)
+      expect(json["tribe"]["username"]).to eq("auth_test_tribe")
+    end
+
+    it "signs in with email via login field" do
+      sign_in_tribe(login: "auth-test@tribetip.africa")
+
+      expect(response).to have_http_status(:ok)
+      expect(json["tribe"]["email"]).to eq("auth-test@tribetip.africa")
     end
   end
 
@@ -102,6 +128,17 @@ RSpec.describe "Tribes JWT authentication", type: :request do
       delete "/tribes/sign_out.json", as: :json
 
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "sets no-store cache headers on sign-out responses" do
+      register_tribe(username: "signout_cache_user", email: "signout-cache@tribetip.africa")
+      sign_in_tribe(login: "signout-cache@tribetip.africa")
+      sign_out_headers = auth_header_from(response)
+
+      delete "/tribes/sign_out.json", headers: sign_out_headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Cache-Control"]).to include("no-store")
     end
   end
 end
