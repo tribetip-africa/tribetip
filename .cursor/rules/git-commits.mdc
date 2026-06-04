@@ -1,0 +1,9 @@
+---
+description: Git commit message standards for this project
+alwaysApply: true
+---
+
+# Git Commits
+
+- Never add `Co-authored-by` trailers to commit messages (including `Co-authored-by: Cursor <cursoragent@cursor.com>`).
+- Write commit messages as plain subject + body only.
