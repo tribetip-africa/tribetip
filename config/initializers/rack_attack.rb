@@ -26,7 +26,7 @@ class Rack::Attack
     [
       429,
       { "Content-Type" => "application/json" },
-      [{ error: tribetip_error.to_h }.to_json]
+      [ { error: tribetip_error.to_h }.to_json ]
     ]
   end
 end

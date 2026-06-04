@@ -25,13 +25,13 @@ RSpec.describe Tribetip::Errors do
   end
 
   {
-    Tribetip::Errors::Validation => [:validation_failed, :unprocessable_content],
-    Tribetip::Errors::Authentication => [:authentication_failed, :unauthorized],
-    Tribetip::Errors::Authorization => [:forbidden, :forbidden],
-    Tribetip::Errors::NotFound => [:not_found, :not_found],
-    Tribetip::Errors::RateLimit => [:rate_limited, :too_many_requests],
-    Tribetip::Errors::BadRequest => [:bad_request, :bad_request],
-    Tribetip::Errors::Internal => [:internal_error, :internal_server_error]
+    Tribetip::Errors::Validation => [ :validation_failed, :unprocessable_content ],
+    Tribetip::Errors::Authentication => [ :authentication_failed, :unauthorized ],
+    Tribetip::Errors::Authorization => [ :forbidden, :forbidden ],
+    Tribetip::Errors::NotFound => [ :not_found, :not_found ],
+    Tribetip::Errors::RateLimit => [ :rate_limited, :too_many_requests ],
+    Tribetip::Errors::BadRequest => [ :bad_request, :bad_request ],
+    Tribetip::Errors::Internal => [ :internal_error, :internal_server_error ]
   }.each do |klass, (code, status)|
     it "#{klass} defaults to #{code} / #{status}" do
       error = klass.new

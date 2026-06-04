@@ -92,7 +92,6 @@ module Tribetip
           "#{source ? " cause=#{source.class}: #{source.message}" : ""}"
         )
       end
-
     end
   end
 end

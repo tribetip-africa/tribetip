@@ -7,20 +7,28 @@ RSpec.describe Tribetip::Errors::Handler, type: :request do
     JSON.parse(response.body)
   end
 
+  def post_invalid_sign_up
+    post "/tribes.json", params: {
+      tribe: {
+        email: "invalid-email",
+        password: "securepass123",
+        password_confirmation: "securepass123",
+        username: "ab"
+      }
+    }, as: :json
+  end
+
+  def expect_structured_error(code:)
+    expect(json.dig("error", "code")).to eq(code)
+    expect(json.dig("error", "message")).to be_present
+  end
+
   describe "validation errors" do
     it "returns structured validation errors for invalid sign-up" do
-      post "/tribes.json", params: {
-        tribe: {
-          email: "invalid-email",
-          password: "securepass123",
-          password_confirmation: "securepass123",
-          username: "ab"
-        }
-      }, as: :json
+      post_invalid_sign_up
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(json.dig("error", "code")).to eq("validation_failed")
-      expect(json.dig("error", "message")).to be_present
+      expect_structured_error(code: "validation_failed")
       expect(json["errors"]).to be_an(Array)
       expect(json["errors"]).not_to be_empty
     end
@@ -31,8 +39,7 @@ RSpec.describe Tribetip::Errors::Handler, type: :request do
       get "/tribes/missing_creator", as: :json
 
       expect(response).to have_http_status(:not_found)
-      expect(json.dig("error", "code")).to eq("not_found")
-      expect(json.dig("error", "message")).to be_present
+      expect_structured_error(code: "not_found")
     end
   end
 
@@ -71,7 +78,7 @@ RSpec.describe Tribetip::Errors::Handler, type: :request do
       get "/tribes/error_rate_limit"
 
       expect(response).to have_http_status(429)
-      expect(json.dig("error", "code")).to eq("rate_limited")
+      expect_structured_error(code: "rate_limited")
       expect(json.dig("error", "message")).to match(/too many requests/i)
     end
   end

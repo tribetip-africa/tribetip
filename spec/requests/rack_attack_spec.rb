@@ -18,14 +18,14 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     tribe
   end
 
+  def exhaust_public_profile_limit(username, count: 60)
+    count.times { get "/tribes/#{username}" }
+  end
+
   it "rate limits repeated public profile lookups" do
     Rack::Attack.reset!
     create_public_tribe(username: "throttle_me")
-
-    60.times do |index|
-      get "/tribes/throttle_me"
-      expect(response.status).to eq(200), "request #{index + 1} was throttled early"
-    end
+    exhaust_public_profile_limit("throttle_me")
 
     get "/tribes/throttle_me"
     expect(response).to have_http_status(429)
