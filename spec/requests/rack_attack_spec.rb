@@ -29,6 +29,8 @@ RSpec.describe "Rack::Attack throttling", type: :request do
 
     get "/tribes/throttle_me"
     expect(response).to have_http_status(429)
-    expect(JSON.parse(response.body)).to include("error" => "Too many requests")
+    body = JSON.parse(response.body)
+    expect(body.dig("error", "code")).to eq("rate_limited")
+    expect(body.dig("error", "message")).to match(/too many requests/i)
   end
 end
