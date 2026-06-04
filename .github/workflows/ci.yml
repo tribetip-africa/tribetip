@@ -103,10 +103,43 @@ jobs:
       - name: Run test suite
         run: bin/rails spec
 
+  error-handling:
+    name: Error handling
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Prepare test database
+        run: bin/rails db:prepare
+
+      - name: Run error handling specs
+        run: bundle exec rspec spec/lib/tribetip/errors
+
   ci:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [lint, zeitwerk, security, test]
+    needs: [lint, zeitwerk, security, test, error-handling]
     if: always()
     steps:
       - name: Require all checks to pass
@@ -114,7 +147,8 @@ jobs:
           if [[ "${{ needs.lint.result }}" != "success" ||
                 "${{ needs.zeitwerk.result }}" != "success" ||
                 "${{ needs.security.result }}" != "success" ||
-                "${{ needs.test.result }}" != "success" ]]; then
+                "${{ needs.test.result }}" != "success" ||
+                "${{ needs.error-handling.result }}" != "success" ]]; then
             echo "One or more required checks failed."
             exit 1
           fi
