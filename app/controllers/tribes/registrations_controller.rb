@@ -28,7 +28,12 @@ module Tribes
           confirmation_required: !resource.confirmed?
         }, status: :created
       else
-        render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
+        render_error(
+          Tribetip::Errors::Validation.new(
+            "Validation failed.",
+            details: { errors: resource.errors.full_messages }
+          )
+        )
       end
     end
 
@@ -45,7 +50,12 @@ module Tribes
           }
         }, status: :created
       else
-        render json: { errors: resource.errors.full_messages }, status: :unprocessable_content
+        render_error(
+          Tribetip::Errors::Validation.new(
+            "Validation failed.",
+            details: { errors: resource.errors.full_messages }
+          )
+        )
       end
     end
 

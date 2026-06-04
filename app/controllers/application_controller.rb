@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::API
   include DatabaseRouting
   include SecureHttpCaching
+  include Tribetip::Errors::Handler
   include PaperTrail::Rails::Controller
   before_action :set_paper_trail_whodunnit
 

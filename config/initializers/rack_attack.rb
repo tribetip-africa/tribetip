@@ -22,6 +22,11 @@ class Rack::Attack
   end
 
   self.throttled_responder = lambda do |_request|
-    [ 429, { "Content-Type" => "application/json" }, [ { error: "Too many requests" }.to_json ] ]
+    tribetip_error = Tribetip::Errors::RateLimit.new
+    [
+      429,
+      { "Content-Type" => "application/json" },
+      [{ error: tribetip_error.to_h }.to_json]
+    ]
   end
 end

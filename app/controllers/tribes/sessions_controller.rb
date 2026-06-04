@@ -54,7 +54,7 @@ module Tribes
       if current_tribe
         render json: { message: "Signed out successfully." }, status: :ok
       else
-        render json: { error: "No active session." }, status: :unauthorized
+        render_error(Tribetip::Errors::Authentication.new("No active session."))
       end
     end
 
