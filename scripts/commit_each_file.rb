@@ -17,7 +17,7 @@ def porcelain_files
 
     status = line[0, 2].strip
     path = line[3..].strip.delete_prefix('"').delete_suffix('"')
-    [status, path]
+    [ status, path ]
   end
 end
 
@@ -129,7 +129,7 @@ def summarize_diff(path, diff, deleted: false)
   removed = diff.lines.count { |l| l.start_with?("-") && !l.start_with?("---") }
   hunks = diff.lines.grep(/^@@ /).size
 
-  lines = ["Update #{path}."]
+  lines = [ "Update #{path}." ]
   lines << ""
   lines << "Modify this #{kind} (#{hunks} edited section#{'s' if hunks != 1}, #{added} additions, #{removed} removals)."
 
