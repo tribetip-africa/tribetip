@@ -1,0 +1,108 @@
+# frozen_string_literal: true
+
+module Me
+  module Paystack
+    class OnboardingController < ApplicationController
+      include Idempotable
+
+      before_action :authenticate_tribe!
+      ONBOARDING_WAIT = 30.seconds
+      CUSTOMER_WAIT = 20.seconds
+
+      def show
+        apply_http_cache_policy(:no_store)
+        provision_customer_if_needed!
+        wait_for_customer_if_needed!
+        market = current_tribe.paystack_market
+        status = Tribetip::Paystack::SyncOnboarding.call(current_tribe.reload)
+        payout = Tribetip::Paystack::FetchPayoutStatus.call(current_tribe.reload, refresh: true)
+        banks = Tribetip::Paystack::ListSettlementBanks.call(market)
+
+        render json: {
+          onboarding: status,
+          payout: payout.as_json,
+          market: market.as_json,
+          banks: banks.map(&:as_json)
+        }
+      end
+
+      def create
+        apply_http_cache_policy(:no_store)
+
+        if idempotency_key_header.present?
+          cached = IdempotencyKey.find_active(scope: "paystack_onboarding", key: idempotency_key_header)
+          return render json: cached.response_body, status: cached.response_code if cached
+        end
+
+        ::Paystack::ProvisionSubaccountJob.perform_later(
+          current_tribe.id,
+          settlement_bank: onboarding_params[:settlement_bank],
+          account_number: onboarding_params[:account_number],
+          business_name: onboarding_params[:business_name]
+        )
+
+        unless wait_for_subaccount_link!
+          message = current_tribe.reload.paystack_provisioning_error.presence ||
+            "Payout setup is still processing. Please wait a moment and refresh."
+          return render_error(Tribetip::Errors::BadRequest.new(message))
+        end
+
+        market = current_tribe.paystack_market
+        status = Tribetip::Paystack::SyncOnboarding.call(current_tribe.reload)
+        body = {
+          message: "Paystack payout account linked.",
+          onboarding: status,
+          market: market.as_json,
+          tribe: tribe_json(current_tribe)
+        }
+
+        if idempotency_key_header.present?
+          IdempotencyKey.store!(
+            scope: "paystack_onboarding",
+            key: idempotency_key_header,
+            response_code: 200,
+            response_body: body
+          )
+        end
+
+        render json: body
+      end
+
+      private
+
+      def onboarding_params
+        params.require(:onboarding).permit(:settlement_bank, :account_number, :business_name)
+      end
+
+      def provision_customer_if_needed!
+        return if current_tribe.paystack_customer_code.present?
+        return unless current_tribe.paystack_market.subaccount_supported?
+
+        ::Paystack::ProvisionCustomerJob.perform_later(current_tribe.id)
+      end
+
+      def wait_for_customer_if_needed!
+        return unless current_tribe.paystack_market.subaccount_supported?
+        return if current_tribe.paystack_customer_code.present?
+
+        Tribetip::AsyncPoll.wait_until(max: CUSTOMER_WAIT) do
+          current_tribe.reload
+          if current_tribe.paystack_provisioning_error.present? && current_tribe.paystack_customer_code.blank?
+            break :failed
+          end
+          current_tribe.paystack_customer_code.present? ? true : nil
+        end
+      end
+
+      def wait_for_subaccount_link!
+        Tribetip::AsyncPoll.wait_until(max: ONBOARDING_WAIT) do
+          current_tribe.reload
+          next true if current_tribe.paystack_subaccount_code.present?
+          next false if current_tribe.paystack_provisioning_error.present?
+
+          nil
+        end == true
+      end
+    end
+  end
+end
