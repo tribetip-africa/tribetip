@@ -1,5 +1,7 @@
 class ApplicationRecord < ActiveRecord::Base
   primary_abstract_class
 
-  has_paper_trail
+  unless Rails.env.test?
+    connects_to database: { writing: :primary, reading: :primary_replica }
+  end
 end
