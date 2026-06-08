@@ -80,3 +80,8 @@ docker-compose.override.yml
 # Misc local scratch
 .scratch/
 *.local
+
+# Cursor (track project rules only)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
