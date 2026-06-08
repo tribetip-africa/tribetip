@@ -56,7 +56,7 @@ RSpec.describe "Admin tribes", type: :request do
           as: :json
 
       expect(response).to have_http_status(:ok)
-      expect(json.fetch("tribes").map { |row| row["username"] }).to eq(["target_creator"])
+      expect(json.fetch("tribes").map { |row| row["username"] }).to eq([ "target_creator" ])
     end
 
     it "forbids creators from listing tribes" do
