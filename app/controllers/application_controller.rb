@@ -1,12 +1,19 @@
 class ApplicationController < ActionController::API
+  include Devise::Controllers::Helpers
+  include DatabaseRouting
+  include SecureHttpCaching
+  include Tribetip::Errors::Handler
   include PaperTrail::Rails::Controller
+  include TribeSerializable
+  include AuthenticatedTribe
+  include Authorization
+
   before_action :set_paper_trail_whodunnit
 
   private
 
-  # Devise integrates through current_user when available.
   def user_for_paper_trail
-    return current_user.id if respond_to?(:current_user, true) && current_user.present?
+    return current_tribe.id if respond_to?(:current_tribe, true) && current_tribe.present?
 
     "system"
   end
