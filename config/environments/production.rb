@@ -54,8 +54,7 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  # Mailer host comes from Tribetip::Platform (see config/initializers/platform.rb).
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
   # config.action_mailer.smtp_settings = {
@@ -75,6 +74,9 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
+  config.active_record.query_log_tags_enabled = true
+  config.active_record.query_log_tags = [ :application, :database_role ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Set APP_HOSTS as comma-separated values, for example:
