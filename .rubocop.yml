@@ -12,9 +12,9 @@ plugins:
 # Layout/SpaceInsideArrayLiteralBrackets:
 #   Enabled: false
 
-# Request specs assert status, headers, and payload together.
+# Request and integration specs assert status, headers, and payload together.
 RSpec/ExampleLength:
-  Max: 10
+  Max: 50
 
 RSpec/MultipleExpectations:
-  Max: 4
+  Max: 10
