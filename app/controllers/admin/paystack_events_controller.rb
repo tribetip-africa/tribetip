@@ -47,11 +47,11 @@ module Admin
     private
 
     def page_limit
-      [[params.fetch(:limit, 25).to_i, 1].max, 100].min
+      [ [ params.fetch(:limit, 25).to_i, 1 ].max, 100 ].min
     end
 
     def page_offset
-      [params.fetch(:offset, 0).to_i, 0].max
+      [ params.fetch(:offset, 0).to_i, 0 ].max
     end
 
     def event_json(event)
