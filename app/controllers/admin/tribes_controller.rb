@@ -64,15 +64,15 @@ module Admin
     end
 
     def page_limit
-      [[params.fetch(:limit, 25).to_i, 1].max, 100].min
+      [ [ params.fetch(:limit, 25).to_i, 1 ].max, 100 ].min
     end
 
     def page_offset
-      [params.fetch(:offset, 0).to_i, 0].max
+      [ params.fetch(:offset, 0).to_i, 0 ].max
     end
 
     def tip_stats_for(tribe)
-      Tribetip::Metrics::TribeTipStats.for_tribes([tribe])
+      Tribetip::Metrics::TribeTipStats.for_tribes([ tribe ])
     end
   end
 end
