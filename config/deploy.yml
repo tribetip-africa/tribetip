@@ -8,10 +8,10 @@ image: your-user/tribetip
 servers:
   web:
     - 192.168.0.1
-  # job:
-  #   hosts:
-  #     - 192.168.0.1
-  #   cmd: bin/jobs
+  job:
+    hosts:
+      - 192.168.0.1
+    cmd: bin/jobs
 
 # Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
 # Remove this section when using multiple web servers and ensure you terminate SSL at your load balancer.
@@ -35,29 +35,34 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    - DEVISE_JWT_SECRET_KEY
+    - TRIBETIP_DATABASE_PASSWORD
   clear:
-    # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
-    # When you start using multiple servers, you should split out job processing to a dedicated machine.
-    SOLID_QUEUE_IN_PUMA: true
-
-    # Set number of processes dedicated to Solid Queue (default: 1)
-    # JOB_CONCURRENCY: 3
+    # Dedicated Solid Queue workers run in the job container (see servers.job above).
+    SOLID_QUEUE_IN_PUMA: false
+    JOB_CONCURRENCY: 3
+    RAILS_MAX_THREADS: 5
+    DB_POOL: 12
 
     # Set number of cores available to the application on each server (default: 1).
     # WEB_CONCURRENCY: 2
 
-    # Match this to any external database server to configure Active Record correctly
-    # Use tribetip-db for a db accessory server on same machine via local kamal docker network.
+    # Primary PostgreSQL (writes + migrations).
     # DB_HOST: 192.168.0.2
+    # DB_DATABASE: tribetip_production
+    # DB_USERNAME: tribetip
+
+    # Read replica (reads). Defaults to DB_HOST when unset.
+    # DB_REPLICA_HOST: 192.168.0.3
 
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
-    # Allowed browser origins for API CORS (comma-separated).
-    # CORS_ALLOWED_ORIGINS: https://app.tribetip.africa,https://admin.tribetip.africa
-
-    # Allowed Host headers for Rails host authorization (comma-separated).
-    # APP_HOSTS: api.tribetip.africa,tribetip.africa
+    TRIBETIP_PLATFORM_URL: https://tribetip.africa
+    TRIBETIP_API_URL: https://api.tribetip.africa
+    CORS_ALLOWED_ORIGINS: https://tribetip.africa
+    APP_HOSTS: api.tribetip.africa,tribetip.africa
+    TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "true"
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal logs -r job" will tail logs from the first server in the job section.
@@ -88,7 +93,7 @@ builder:
   #
   # # Pass arguments and secrets to the Docker build process
   # args:
-  #   RUBY_VERSION: 3.2.10
+  #   RUBY_VERSION: 3.3.6
   # secrets:
   #   - GITHUB_TOKEN
   #   - RAILS_MASTER_KEY
