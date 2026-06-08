@@ -90,7 +90,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
     client = instance_double(Tribetip::Paystack::Client)
     allow(Tribetip::Paystack::Client).to receive(:new).and_return(client)
     verified = instance_double(
-      PaystackResponse,
+      Tribetip::Paystack::Client::ResourceResponse,
       success?: true,
       message: "Verified",
       data: { "is_verified" => true }
