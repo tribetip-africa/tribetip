@@ -51,10 +51,11 @@ RSpec.describe "Admin Paystack events", type: :request do
       error_message: "temporary failure"
     )
 
-    expect(Paystack::ProcessWebhookJob).to receive(:perform_later).with(event.id)
+    allow(Paystack::ProcessWebhookJob).to receive(:perform_later)
 
     post "/admin/paystack_events/#{event.id}/replay", headers: auth_headers(admin), as: :json
 
+    expect(Paystack::ProcessWebhookJob).to have_received(:perform_later).with(event.id)
     expect(response).to have_http_status(:ok)
     expect(event.reload.status).to eq("pending")
     expect(event.error_message).to be_nil
