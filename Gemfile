@@ -18,10 +18,16 @@ gem "thruster", require: false
 # gem "image_processing", "~> 1.2"
 
 gem "rack-cors"
+gem "rack-attack"
+
+group :development do
+  gem "dotenv-rails"
+end
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false
+  gem "bundler-audit", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
   gem "rubocop", "~> 1.87"
@@ -32,3 +38,7 @@ gem "devise", "~> 5.0"
 gem "devise-i18n"
 
 gem "paper_trail", "~> 17.0"
+
+gem "devise-jwt", "~> 0.13.0"
+
+gem "pundit", "~> 2.5"
