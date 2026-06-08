@@ -1,7 +1,13 @@
 class ApplicationJob < ActiveJob::Base
-  # Automatically retry jobs that encountered a deadlock
-  # retry_on ActiveRecord::Deadlocked
+  include Tribetip::Errors::JobHelpers
 
-  # Most jobs are safe to ignore if the underlying records are no longer available
-  # discard_on ActiveJob::DeserializationError
+  around_perform :with_paper_trail_context
+
+  private
+
+  def with_paper_trail_context
+    PaperTrail.request(whodunnit: "job:#{self.class.name}") do
+      yield
+    end
+  end
 end
