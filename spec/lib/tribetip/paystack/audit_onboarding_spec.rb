@@ -89,15 +89,13 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
 
     client = instance_double(Tribetip::Paystack::Client)
     allow(Tribetip::Paystack::Client).to receive(:new).and_return(client)
-    allow(client).to receive(:stub_mode?).and_return(false)
     verified = instance_double(
-      "PaystackResponse",
+      PaystackResponse,
       success?: true,
       message: "Verified",
       data: { "is_verified" => true }
     )
-    allow(client).to receive(:fetch_customer).and_return(verified)
-    allow(client).to receive(:fetch_subaccount).and_return(verified)
+    allow(client).to receive_messages(stub_mode?: false, fetch_customer: verified, fetch_subaccount: verified)
 
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
