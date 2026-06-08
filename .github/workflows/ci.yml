@@ -1,28 +1,26 @@
-name: CI
+name: API CI
 
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: api-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RAILS_ENV: test
+  DB_HOST: 127.0.0.1
+  DB_USERNAME: postgres
+  DB_PASSWORD: postgres
+  PGHOST: 127.0.0.1
+  PGUSER: postgres
+  PGPASSWORD: postgres
 
 jobs:
-  scan_ruby:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
-
-      - name: Scan for common Rails security vulnerabilities using static analysis
-        run: bin/brakeman --no-pager
-
   lint:
+    name: RuboCop
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,7 +35,43 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  zeitwerk:
+    name: Zeitwerk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Verify autoload paths
+        run: bin/rails zeitwerk:check
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Scan for Rails security vulnerabilities
+        run: bin/brakeman --no-pager -q -w2
+
+      - name: Scan Ruby dependencies for known CVEs
+        run: bundle exec bundle-audit check --update
+
   test:
+    name: RSpec
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -52,12 +86,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-    env:
-      RAILS_ENV: test
-      PGHOST: 127.0.0.1
-      PGUSER: postgres
-      PGPASSWORD: postgres
 
     steps:
       - name: Checkout code
@@ -75,3 +103,52 @@ jobs:
       - name: Run test suite
         run: bin/rails spec
 
+  error-handling:
+    name: Error handling
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Prepare test database
+        run: bin/rails db:prepare
+
+      - name: Run error handling specs
+        run: bundle exec rspec spec/lib/tribetip/errors
+
+  ci:
+    name: CI gate
+    runs-on: ubuntu-latest
+    needs: [lint, zeitwerk, security, test, error-handling]
+    if: always()
+    steps:
+      - name: Require all checks to pass
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ||
+                "${{ needs.zeitwerk.result }}" != "success" ||
+                "${{ needs.security.result }}" != "success" ||
+                "${{ needs.test.result }}" != "success" ||
+                "${{ needs.error-handling.result }}" != "success" ]]; then
+            echo "One or more required checks failed."
+            exit 1
+          fi
