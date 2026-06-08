@@ -32,9 +32,7 @@ RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
 
     client = instance_double(Tribetip::Paystack::Client)
     allow(Tribetip::Paystack::Client).to receive(:new).and_return(client)
-    allow(client).to receive(:stub_mode?).and_return(false)
-    allow(client).to receive(:fetch_subaccount).and_return(
-      Tribetip::Paystack::Client::ResourceResponse.new(
+    allow(client).to receive_messages(stub_mode?: false, fetch_subaccount: Tribetip::Paystack::Client::ResourceResponse.new(
         success?: true,
         code: tribe.paystack_subaccount_code,
         message: "OK",
@@ -44,10 +42,7 @@ RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
           "account_number" => "0712345678",
           "currency" => "KES"
         }
-      )
-    )
-    allow(client).to receive(:fetch_transaction_totals).and_return(
-      Tribetip::Paystack::Client::ResourceResponse.new(
+      ), fetch_transaction_totals: Tribetip::Paystack::Client::ResourceResponse.new(
         success?: true,
         code: nil,
         message: "OK",
@@ -56,8 +51,7 @@ RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
           "total_transactions" => 1,
           "total_volume" => 50_000
         }
-      )
-    )
+      ))
 
     status = described_class.call(tribe.reload)
 
