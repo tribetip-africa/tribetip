@@ -9,7 +9,7 @@ end
 
 namespace :paystack do
   desc "Audit Paystack onboarding for a creator (username). Set SYNC=1 to reconcile local state."
-  task :audit, [:username] => :environment do |_task, args|
+  task :audit, [ :username ] => :environment do |_task, args|
     username = args[:username].to_s.strip.downcase
     abort "Usage: bin/rails paystack:audit[username]" if username.blank?
 
