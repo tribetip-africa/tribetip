@@ -17,6 +17,10 @@ class TipPolicy < ApplicationPolicy
     owner? || admin?
   end
 
+  def reconcile?
+    owner? && record.pending?
+  end
+
   private
 
   def owner?
