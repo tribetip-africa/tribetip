@@ -1,0 +1,23 @@
+# Per-region launch flags. Set TRIBETIP_ENABLED_REGIONS=KE,NG to override at deploy time,
+# or TRIBETIP_REGION_NG_ENABLED=true to toggle a single market.
+default: &default
+  flags:
+    NG: false
+    GH: false
+    KE: true
+    ZA: false
+    CI: false
+
+development:
+  <<: *default
+
+production:
+  <<: *default
+
+test:
+  flags:
+    NG: true
+    GH: true
+    KE: true
+    ZA: true
+    CI: true
