@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_08_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_08_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -30,6 +30,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_150000) do
     t.index ["admin_id"], name: "index_admin_audit_logs_on_admin_id"
     t.index ["created_at"], name: "index_admin_audit_logs_on_created_at"
     t.index ["target_type", "target_id"], name: "index_admin_audit_logs_on_target_type_and_target_id"
+  end
+
+  create_table "creator_notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "tribe_id", null: false
+    t.string "kind", null: false
+    t.string "title", null: false
+    t.text "body", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tribe_id", "created_at"], name: "index_creator_notifications_on_tribe_id_and_created_at"
+    t.index ["tribe_id", "read_at"], name: "index_creator_notifications_on_tribe_id_and_read_at"
+    t.index ["tribe_id"], name: "index_creator_notifications_on_tribe_id"
   end
 
   create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -65,6 +79,28 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_150000) do
     t.index ["event_id"], name: "index_paystack_events_on_event_id", unique: true
     t.index ["status"], name: "index_paystack_events_on_status"
     t.index ["tip_id"], name: "index_paystack_events_on_tip_id"
+  end
+
+  create_table "paystack_settlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "tribe_id", null: false
+    t.uuid "paystack_event_id"
+    t.string "paystack_transfer_code", null: false
+    t.integer "amount_cents", null: false
+    t.string "currency", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "settled_at"
+    t.string "destination"
+    t.string "reference"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "tip_id"
+    t.index ["paystack_event_id"], name: "index_paystack_settlements_on_paystack_event_id"
+    t.index ["paystack_transfer_code"], name: "index_paystack_settlements_on_paystack_transfer_code", unique: true
+    t.index ["status"], name: "index_paystack_settlements_on_status"
+    t.index ["tip_id"], name: "index_paystack_settlements_on_tip_id"
+    t.index ["tribe_id", "settled_at"], name: "index_paystack_settlements_on_tribe_id_and_settled_at"
+    t.index ["tribe_id"], name: "index_paystack_settlements_on_tribe_id"
   end
 
   create_table "tip_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -137,8 +173,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_150000) do
     t.string "username"
     t.string "display_name"
     t.text "bio"
-    t.string "country_code", default: "NG", null: false
-    t.string "currency", default: "NGN", null: false
+    t.string "country_code", default: "KE", null: false
+    t.string "currency", default: "KES", null: false
     t.integer "default_tip_amount_cents", default: 50000, null: false
     t.string "account_status", default: "pending", null: false
     t.boolean "is_profile_public", default: false, null: false
@@ -179,6 +215,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_150000) do
     t.index ["request_id"], name: "index_versions_on_request_id"
   end
 
+  add_foreign_key "creator_notifications", "tribes"
   add_foreign_key "paystack_events", "tips"
+  add_foreign_key "paystack_settlements", "paystack_events"
+  add_foreign_key "paystack_settlements", "tips"
+  add_foreign_key "paystack_settlements", "tribes"
   add_foreign_key "tips", "tribes"
 end
