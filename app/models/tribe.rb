@@ -36,6 +36,8 @@ class Tribe < ApplicationRecord
   after_create :enqueue_paystack_customer_provision
 
   has_many :tips, dependent: :destroy
+  has_many :paystack_settlements, dependent: :destroy
+  has_many :creator_notifications, dependent: :destroy
 
   validates :username, presence: true,
                        format: { with: /\A[a-z0-9_]+\z/ },
@@ -44,6 +46,7 @@ class Tribe < ApplicationRecord
   validates :display_name, presence: true, if: :is_profile_public?
   validates :bio, length: { maximum: 500 }, allow_blank: true
   validates :country_code, inclusion: { in: VALID_COUNTRY_CODES }
+  validate :country_code_must_be_enabled, if: :country_code_changed?
   validates :currency, inclusion: { in: VALID_CURRENCIES }
   validates :default_tip_amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :account_status, inclusion: { in: VALID_ACCOUNT_STATUSES }
@@ -59,6 +62,10 @@ class Tribe < ApplicationRecord
 
   def creator?
     role == "creator"
+  end
+
+  def paystack_sync_required?
+    creator?
   end
 
   def suspended?
@@ -124,7 +131,16 @@ class Tribe < ApplicationRecord
   end
 
   def enqueue_paystack_customer_provision
+    return unless paystack_sync_required?
+
     ::Paystack::ProvisionCustomerJob.perform_later(id)
+  end
+
+  def country_code_must_be_enabled
+    return if country_code.blank?
+    return if Tribetip::Regions.enabled?(country_code)
+
+    errors.add(:country_code, "is not available yet")
   end
 
   def email_acceptable_for_paystack
