@@ -14,6 +14,7 @@ module Tribetip
       Response = Struct.new(:success?, :reference, :access_code, :authorization_url, :message, keyword_init: true)
       ResourceResponse = Struct.new(:success?, :code, :message, :data, keyword_init: true)
       VerifyResponse = Struct.new(:success?, :status, :subaccount_code, :message, :data, keyword_init: true)
+      TransferResponse = Struct.new(:success?, :transfer_code, :status, :message, :data, keyword_init: true)
 
       def initialize(secret_key: ENV["PAYSTACK_SECRET_KEY"])
         @secret_key = secret_key.to_s
@@ -56,10 +57,10 @@ module Tribetip
         resource_response(response, code_path: %w[customer_code], fallback_code: code)
       end
 
-      def create_subaccount(business_name:, settlement_bank:, account_number:, percentage_charge:, primary_contact_email:, currency:, metadata: {})
+      def create_subaccount(business_name:, settlement_bank:, account_number:, percentage_charge:, primary_contact_email:, currency:, metadata: {}, settlement_schedule: nil)
         return stub_resource("acct") if stub_mode?
 
-        response = post("/subaccount", {
+        body = {
           business_name: business_name,
           settlement_bank: settlement_bank,
           account_number: account_number,
@@ -67,7 +68,10 @@ module Tribetip
           primary_contact_email: primary_contact_email,
           currency: currency,
           metadata: metadata
-        })
+        }
+        body[:settlement_schedule] = settlement_schedule if settlement_schedule.present?
+
+        response = post("/subaccount", body)
 
         resource_response(response, code_path: %w[subaccount_code])
       end
@@ -89,6 +93,45 @@ module Tribetip
         ResourceResponse.new(
           success?: response["status"] == true,
           code: subaccount,
+          message: response["message"],
+          data: data.presence
+        )
+      end
+
+      def list_transfers(page: 1, per_page: 50)
+        return stub_list_transfers if stub_mode?
+
+        response = get("/transfer?page=#{page}&perPage=#{per_page}")
+        transfers = response.fetch("data", [])
+
+        ResourceResponse.new(
+          success?: response["status"] == true,
+          code: nil,
+          message: response["message"],
+          data: transfers
+        )
+      end
+
+      def initiate_subaccount_withdrawal(subaccount:, amount_cents:, currency:, reference:, reason:, metadata: {})
+        return stub_initiate_transfer(reference: reference, amount_cents: amount_cents, currency: currency) if stub_mode?
+
+        response = post("/transfer", {
+          source: "balance",
+          amount: amount_cents,
+          reference: reference,
+          reason: reason,
+          currency: currency,
+          metadata: metadata.merge(subaccount_code: subaccount)
+        })
+
+        data = response.fetch("data", {})
+        status = Tribetip::Paystack::SettlementRecord::STATUSES.include?(data["status"].to_s.downcase) ?
+                   data["status"].to_s.downcase : "processing"
+
+        TransferResponse.new(
+          success?: response["status"] == true && data["transfer_code"].present?,
+          transfer_code: data["transfer_code"],
+          status: status,
           message: response["message"],
           data: data.presence
         )
@@ -161,7 +204,9 @@ module Tribetip
             "active" => true,
             "settlement_bank" => "MPESA",
             "account_number" => "0712345678",
-            "settlement_schedule" => "AUTO",
+            "settlement_schedule" => PayoutMode.settlement_schedule(
+              transfers_supported: FetchPayoutCapabilities.call(client: self).transfers_supported
+            ),
             "currency" => "KES"
           }
         )
@@ -180,6 +225,31 @@ module Tribetip
         )
       end
 
+      def stub_list_transfers
+        ResourceResponse.new(
+          success?: true,
+          code: nil,
+          message: "Stub transfer list",
+          data: []
+        )
+      end
+
+      def stub_initiate_transfer(reference:, amount_cents:, currency:)
+        TransferResponse.new(
+          success?: true,
+          transfer_code: "TRF_#{reference}",
+          status: "processing",
+          message: "Stub transfer initiated",
+          data: {
+            "transfer_code" => "TRF_#{reference}",
+            "amount" => amount_cents,
+            "currency" => currency,
+            "status" => "processing",
+            "reference" => reference
+          }
+        )
+      end
+
       def stub_list_banks(paystack_bank_country)
         market = Market::MARKETS.values.find { |config| config[:paystack_bank_country] == paystack_bank_country }
         bank_name = market&.dig(:stub_bank_name) || "Stub Bank"
@@ -194,12 +264,21 @@ module Tribetip
             "type" => "kepss"
           }
         ]
-        if paystack_bank_country == "kenya"
+        case paystack_bank_country
+        when "kenya"
           banks << {
             "name" => "M-PESA",
             "code" => "MPESA",
             "country" => paystack_bank_country,
             "currency" => "KES",
+            "type" => "mobile_money"
+          }
+        when "ghana"
+          banks << {
+            "name" => "MTN Mobile Money",
+            "code" => "MTN",
+            "country" => paystack_bank_country,
+            "currency" => "GHS",
             "type" => "mobile_money"
           }
         end
