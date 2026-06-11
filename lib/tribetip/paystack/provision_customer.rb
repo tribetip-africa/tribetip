@@ -15,6 +15,8 @@ module Tribetip
       end
 
       def call
+        return skipped unless @tribe.paystack_sync_required?
+
         @tribe.with_lock do
           @tribe.reload
           return success(@tribe.paystack_customer_code) if @tribe.paystack_customer_code.present?
@@ -49,6 +51,10 @@ module Tribetip
 
       def success(code)
         Result.new(success?: true, customer_code: code)
+      end
+
+      def skipped
+        Result.new(success?: true, customer_code: nil, message: "Paystack sync is not required for admin accounts.")
       end
     end
   end
