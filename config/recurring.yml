@@ -21,3 +21,7 @@ production:
     class: Paystack::RetryFailedWebhookEventsJob
     queue: webhooks
     schedule: every hour at minute 30
+  sync_settlements:
+    class: Paystack::SyncSettlementsJob
+    queue: default
+    schedule: every hour at minute 45
