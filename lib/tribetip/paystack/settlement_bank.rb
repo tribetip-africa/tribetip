@@ -5,9 +5,10 @@ module Tribetip
     class SettlementBank
       attr_reader :name, :code, :type, :currency
 
-      def self.list_from(data, currency: nil)
+      def self.list_from(data, currency: nil, market: nil)
         banks = Array(data).filter_map { |row| from_paystack(row) }
         banks = banks.select { |bank| bank.currency == currency } if currency.present?
+        banks = banks.select { |bank| bank.available_for_market?(market) } if market.present?
         banks.uniq(&:code)
       end
 
@@ -31,17 +32,27 @@ module Tribetip
         @currency = currency
       end
 
-      def mobile_money?
+      def mobile_money_rail?
         SettlementAccount.mobile_money_bank?(code) || type.to_s.include?("mobile_money")
       end
 
-      def as_json(*)
+      def available_for_market?(market)
+        return true if market.blank?
+
+        mobile_money_rail? ? market.mobile_money_supported? : true
+      end
+
+      def mobile_money?(market: nil)
+        mobile_money_rail? && (market.blank? || market.mobile_money_supported?)
+      end
+
+      def as_json(market: nil, **_options)
         {
           name: name,
           code: code,
           type: type,
           currency: currency,
-          mobile_money: mobile_money?
+          mobile_money: mobile_money?(market: market)
         }.compact
       end
     end
