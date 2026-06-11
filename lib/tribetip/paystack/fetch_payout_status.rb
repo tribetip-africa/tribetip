@@ -11,12 +11,15 @@ module Tribetip
         :account_number,
         :account_name,
         :settlement_schedule,
+        :settlement_schedule_label,
         :pending_settlement_cents,
+        :available_to_settle_cents,
         :total_transactions,
         :total_volume_cents,
         :currency,
         :can_publish,
         :publish_blocker,
+        :refreshed_at,
         keyword_init: true
       ) do
         def as_json(*)
@@ -26,12 +29,15 @@ module Tribetip
             account_number: account_number,
             account_name: account_name,
             settlement_schedule: settlement_schedule,
+            settlement_schedule_label: settlement_schedule_label,
             pending_settlement_cents: pending_settlement_cents,
+            available_to_settle_cents: available_to_settle_cents,
             total_transactions: total_transactions,
             total_volume_cents: total_volume_cents,
             currency: currency,
             can_publish: can_publish,
-            publish_blocker: publish_blocker
+            publish_blocker: publish_blocker,
+            refreshed_at: refreshed_at
           }.compact
         end
       end
@@ -74,7 +80,10 @@ module Tribetip
             subaccount_verified: false,
             can_publish: false,
             publish_blocker: "Payout setup is not available in your market yet.",
-            currency: @market.currency
+            currency: @market.currency,
+            available_to_settle_cents: 0,
+            settlement_schedule_label: settlement_schedule_label(nil),
+            refreshed_at: Time.current.iso8601
           )
         end
 
@@ -83,7 +92,10 @@ module Tribetip
             subaccount_verified: false,
             can_publish: false,
             publish_blocker: "Link your payout account to continue.",
-            currency: @market.currency
+            currency: @market.currency,
+            available_to_settle_cents: 0,
+            settlement_schedule_label: settlement_schedule_label(nil),
+            refreshed_at: Time.current.iso8601
           )
         end
 
@@ -99,35 +111,71 @@ module Tribetip
         verified = data["is_verified"] == true
         pending = totals_data["pending_transfers"].to_i
         currency = data["currency"].presence || @market.currency
+        schedule = data["settlement_schedule"]
 
-        Status.new(
-          subaccount_verified: verified,
+        status_for(
+          verified: verified,
           settlement_bank: data["settlement_bank"],
-          account_number: mask_account_number(data["account_number"]),
+          account_number: data["account_number"],
           account_name: data["account_name"],
-          settlement_schedule: data["settlement_schedule"],
-          pending_settlement_cents: pending.positive? ? pending : nil,
+          settlement_schedule: schedule,
+          pending_cents: pending,
           total_transactions: totals_data["total_transactions"].to_i,
           total_volume_cents: totals_data["total_volume"].to_i,
-          currency: currency,
-          can_publish: publish_allowed?(verified),
-          publish_blocker: publish_blocker_message(verified)
+          currency: currency
         )
       end
 
       def stub_status
         ready = @tribe.paystack_subaccount_ready?
         verified = ready
+        capabilities = FetchPayoutCapabilities.call(client: @client)
 
-        Status.new(
-          subaccount_verified: verified,
+        status_for(
+          verified: verified,
           settlement_bank: @market.stub_settlement_bank,
-          account_number: mask_account_number(@market.stub_account_number),
-          settlement_schedule: "AUTO",
-          can_publish: publish_allowed?(verified),
-          publish_blocker: publish_blocker_message(verified),
+          account_number: @market.stub_account_number,
+          settlement_schedule: PayoutMode.settlement_schedule(
+            transfers_supported: capabilities.transfers_supported
+          ),
+          pending_cents: stub_pending_settlement_cents,
           currency: @market.currency
         )
+      end
+
+      def status_for(verified:, settlement_bank:, account_number:, settlement_schedule:, pending_cents:, currency:,
+                     account_name: nil, total_transactions: nil, total_volume_cents: nil)
+        Status.new(
+          subaccount_verified: verified,
+          settlement_bank: settlement_bank,
+          account_number: mask_account_number(account_number),
+          account_name: account_name,
+          settlement_schedule: settlement_schedule,
+          settlement_schedule_label: settlement_schedule_label(settlement_schedule),
+          pending_settlement_cents: pending_cents.positive? ? pending_cents : nil,
+          available_to_settle_cents: pending_cents,
+          total_transactions: total_transactions,
+          total_volume_cents: total_volume_cents,
+          currency: currency,
+          can_publish: publish_allowed?(verified),
+          publish_blocker: publish_blocker_message(verified),
+          refreshed_at: Time.current.iso8601
+        )
+      end
+
+      def stub_pending_settlement_cents
+        AvailableBalance.call(@tribe).amount_cents
+      end
+
+      def settlement_schedule_label(schedule)
+        case schedule.to_s.upcase
+        when "AUTO"
+          "Automatic — Paystack settles to your linked payout account"
+        when "MANUAL"
+          "Manual — withdraw to your linked payout account when you choose"
+        else
+          schedule.presence || "Automatic — Paystack settles to your linked payout account"
+        end
       end
 
       def publish_allowed?(verified)
