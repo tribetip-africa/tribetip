@@ -64,4 +64,52 @@ RSpec.describe "Paystack webhooks", type: :request do
       expect(json.dig("error", "code")).to eq("bad_request")
     end
   end
+
+  def create_creator(username:)
+    tribe = Tribe.create!(
+      email: "#{username}@tribetip.africa",
+      password: "securepass123",
+      password_confirmation: "securepass123",
+      username: username,
+      country_code: "KE",
+      currency: "KES"
+    )
+    complete_stub_paystack_onboarding!(tribe)
+    tribe.reload
+  end
+
+  describe "transfer.success webhook" do
+    it "persists settlement rows for creators" do
+      tribe = create_creator(username: "transfer_webhook")
+      payload = {
+        event: "transfer.success",
+        data: {
+          transfer_code: "TRF_webhook_settlement",
+          amount: 60_000,
+          currency: "KES",
+          status: "success",
+          metadata: {
+            tribe_id: tribe.id,
+            subaccount_code: tribe.paystack_subaccount_code
+          },
+          recipient: {
+            details: {
+              account_number: "0712345678",
+              bank_name: "M-PESA"
+            }
+          }
+        }
+      }.to_json
+
+      post "/paystack/webhook",
+           params: payload,
+           headers: {
+             "CONTENT_TYPE" => "application/json",
+             "x-paystack-signature" => "test-signature"
+           }
+
+      expect(response).to have_http_status(:ok)
+      expect(PaystackSettlement.find_by(paystack_transfer_code: "TRF_webhook_settlement")&.tribe_id).to eq(tribe.id)
+    end
+  end
 end
