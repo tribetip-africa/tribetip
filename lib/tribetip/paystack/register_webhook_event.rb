@@ -44,6 +44,12 @@ module Tribetip
       private
 
       def event_id
+        event_name = @payload["event"].to_s
+        if event_name.start_with?("transfer.")
+          transfer_code = @payload.dig("data", "transfer_code") || @payload.dig("data", "id")
+          return "paystack:#{event_name}:#{transfer_code}" if transfer_code.present?
+        end
+
         reference = @payload.dig("data", "reference")
         paystack_id = @payload.dig("data", "id")
         return "paystack:#{@payload['event']}:#{paystack_id}" if paystack_id.present?
