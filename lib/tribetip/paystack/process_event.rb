@@ -16,6 +16,8 @@ module Tribetip
         case @event["event"]
         when "charge.success", "charge.failed"
           reconcile_tip
+        when "transfer.success", "transfer.failed", "transfer.reversed"
+          record_settlement
         end
       end
 
@@ -29,6 +31,14 @@ module Tribetip
         Tribetip::Paystack::ReconcileTipPayment.call(
           tip,
           paid_via: :webhook,
+          paystack_event: @paystack_event
+        )
+      end
+
+      def record_settlement
+        Tribetip::Paystack::RecordSettlement.call(
+          payload: @event["data"],
+          event_type: @event["event"],
           paystack_event: @paystack_event
         )
       end
