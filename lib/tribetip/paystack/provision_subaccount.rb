@@ -20,6 +20,8 @@ module Tribetip
       end
 
       def call(settlement_bank:, account_number:, business_name:)
+        return skipped unless @tribe.paystack_sync_required?
+
         @tribe.with_lock do
           @tribe.reload
           return success(@tribe.paystack_subaccount_code) if @tribe.paystack_subaccount_code.present?
@@ -50,6 +52,8 @@ module Tribetip
             return Result.new(success?: false, message: "Settlement bank and account number are required.")
           end
 
+          capabilities = FetchPayoutCapabilities.call(client: @client)
+
           response = @client.create_subaccount(
             business_name: business_name.presence || @tribe.display_name.presence || @tribe.username,
             settlement_bank: bank,
@@ -57,6 +61,9 @@ module Tribetip
             percentage_charge: platform_fee_percent,
             primary_contact_email: @tribe.email,
             currency: @market.currency,
+            settlement_schedule: PayoutMode.settlement_schedule(
+              transfers_supported: capabilities.transfers_supported
+            ),
             metadata: @market.paystack_metadata_for(@tribe).merge(
               paystack_customer_code: @tribe.paystack_customer_code
             )
@@ -86,6 +93,13 @@ module Tribetip
 
       def success(code)
         Result.new(success?: true, subaccount_code: code)
+      end
+
+      def skipped
+        Result.new(
+          success?: false,
+          message: "Paystack sync is not required for admin accounts."
+        )
       end
     end
   end
