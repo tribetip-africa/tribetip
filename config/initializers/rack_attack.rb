@@ -29,6 +29,18 @@ class Rack::Attack
     req.ip if req.post? && req.path == "/tips"
   end
 
+  throttle("paystack_repair/ip", limit: 6, period: 5.minutes) do |req|
+    req.ip if req.post? && req.path == "/me/paystack/repair"
+  end
+
+  throttle("admin_paystack_repair/ip", limit: 10, period: 5.minutes) do |req|
+    req.ip if req.post? && req.path.match?(%r{\A/admin/tribes/[^/]+/repair\z})
+  end
+
+  throttle("paystack_withdrawal/ip", limit: 6, period: 5.minutes) do |req|
+    req.ip if req.post? && req.path == "/me/paystack/withdrawals"
+  end
+
   self.throttled_responder = lambda do |_request|
     tribetip_error = Tribetip::Errors::RateLimit.new
     [
