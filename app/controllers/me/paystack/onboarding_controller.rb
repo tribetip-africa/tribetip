@@ -6,6 +6,7 @@ module Me
       include Idempotable
 
       before_action :authenticate_tribe!
+      before_action :ensure_creator_for_paystack!
       ONBOARDING_WAIT = 30.seconds
       CUSTOMER_WAIT = 20.seconds
 
@@ -22,7 +23,10 @@ module Me
           onboarding: status,
           payout: payout.as_json,
           market: market.as_json,
-          banks: banks.map(&:as_json)
+          banks: banks.map { |bank| bank.as_json(market: market) },
+          earnings: Tribetip::Metrics::CreatorSummary.call(current_tribe).as_json,
+          settlements_summary: Tribetip::Metrics::SettlementSummary.call(current_tribe).as_json,
+          refreshed_at: Time.current.iso8601
         }
       end
 
@@ -53,7 +57,7 @@ module Me
           message: "Paystack payout account linked.",
           onboarding: status,
           market: market.as_json,
-          tribe: tribe_json(current_tribe)
+          tribe: tribe_json(current_tribe.reload)
         }
 
         if idempotency_key_header.present?
@@ -75,6 +79,7 @@ module Me
       end
 
       def provision_customer_if_needed!
+        return unless current_tribe.paystack_sync_required?
         return if current_tribe.paystack_customer_code.present?
         return unless current_tribe.paystack_market.subaccount_supported?
 
@@ -102,6 +107,14 @@ module Me
 
           nil
         end == true
+      end
+
+      def ensure_creator_for_paystack!
+        return if current_tribe.creator?
+
+        render_error(
+          Tribetip::Errors::BadRequest.new("Paystack onboarding is not available for admin accounts.")
+        )
       end
     end
   end
