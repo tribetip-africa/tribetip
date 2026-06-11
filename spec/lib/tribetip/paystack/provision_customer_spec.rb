@@ -15,4 +15,17 @@ RSpec.describe Tribetip::Paystack::ProvisionCustomer do
     expect(tribe.paystack_subaccount_code).to be_nil
     expect(tribe.paystack_onboarding_complete?).to be(false)
   end
+
+  it "does not provision Paystack for admin accounts" do
+    tribe = Tribe.create!(
+      email: "admin_provision@tribetip.africa",
+      password: "securepass123",
+      password_confirmation: "securepass123",
+      username: "admin_provision",
+      role: "admin"
+    )
+
+    expect(tribe.reload.paystack_customer_code).to be_nil
+    expect(tribe.paystack_subaccount_code).to be_nil
+  end
 end
