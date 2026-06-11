@@ -20,10 +20,12 @@ module Tribetip
           scope: :public,
           ttl: 24.hours
         ) do
-          fetch_banks_from_paystack.map(&:as_json)
+          fetch_banks_from_paystack.map { |bank| bank.as_json(market: @market) }
         end
 
-        payload.map { |row| bank_from_cache(row) }
+        payload
+          .map { |row| bank_from_cache(row) }
+          .select { |bank| bank.available_for_market?(@market) }
       end
 
       private
@@ -46,7 +48,7 @@ module Tribetip
         response = @client.list_banks(paystack_bank_country: @market.paystack_bank_country)
         return [] unless response.success?
 
-        SettlementBank.list_from(response.data, currency: @market.currency)
+        SettlementBank.list_from(response.data, currency: @market.currency, market: @market)
       end
     end
   end
