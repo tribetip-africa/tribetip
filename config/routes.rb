@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
+  get "regions", to: "regions#index"
 
   get "tribes/:username", to: "public_profiles#show",
                           constraints: { username: /[a-z0-9_]+/ },
@@ -18,10 +19,26 @@ Rails.application.routes.draw do
       post :publish
     end
 
-    resources :tips, only: %i[index show]
+    resources :tips, only: %i[index show] do
+      member do
+        post :reconcile
+      end
+    end
+
+    resources :notifications, only: %i[index] do
+      member do
+        patch :read
+      end
+      collection do
+        patch :read_all, action: :read_all
+      end
+    end
 
     namespace :paystack do
       resource :onboarding, only: %i[show create], controller: "onboarding"
+      resources :settlements, only: %i[index show]
+      resources :withdrawals, only: %i[index create]
+      resource :repair, only: %i[create], controller: "repairs"
     end
   end
 
@@ -35,6 +52,8 @@ Rails.application.routes.draw do
     patch "tribes/:id/suspend", to: "tribes#suspend"
     patch "tribes/:id/activate", to: "tribes#activate"
     get "tribes/:id/paystack_audit", to: "paystack/audits#show"
+    get "tribes/:id/settlements", to: "settlements#index"
+    post "tribes/:id/repair", to: "repairs#create"
     get "paystack_events", to: "paystack_events#index"
     post "paystack_events/:id/replay", to: "paystack_events#replay"
     get "tips/:paystack_reference/investigate", to: "tips#investigate"
