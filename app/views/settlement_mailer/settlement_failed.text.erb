@@ -1,0 +1,7 @@
+Hi @<%= @tribe.username %>,
+
+Paystack reported a settlement issue (<%= @event_type.humanize.downcase %>) for <%= number_to_currency(@settlement.amount_cents / 100.0, unit: "#{@settlement.currency} ") %>.
+
+Check your payout dashboard for details and refresh your settlement history if needed: <%= @dashboard_url %>
+
+— TribeTip
