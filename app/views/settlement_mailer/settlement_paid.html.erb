@@ -1,0 +1,13 @@
+<p>Hi @<%= @tribe.username %>,</p>
+
+<p>
+  Paystack sent <%= number_to_currency(@settlement.amount_cents / 100.0, unit: "#{@settlement.currency} ") %>
+  to your linked payout account<%= @settlement.destination.present? ? " (#{@settlement.destination})" : "" %>.
+</p>
+
+<p>
+  View your payout dashboard:
+  <%= link_to @dashboard_url, @dashboard_url %>
+</p>
+
+<p>— TribeTip</p>
