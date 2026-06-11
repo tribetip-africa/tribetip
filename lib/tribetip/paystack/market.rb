@@ -4,7 +4,8 @@ module Tribetip
   module Paystack
     class Market
       attr_reader :country_code, :name, :currency, :paystack_bank_country,
-                  :stub_bank_name, :stub_settlement_bank, :stub_account_number, :subaccount_supported
+                  :stub_bank_name, :stub_settlement_bank, :stub_account_number,
+                  :subaccount_supported, :mobile_money_supported
 
       MARKETS = {
         "NG" => {
@@ -14,7 +15,8 @@ module Tribetip
           stub_bank_name: "Zenith Bank",
           stub_settlement_bank: "057",
           stub_account_number: "0000000000",
-          subaccount_supported: true
+          subaccount_supported: true,
+          mobile_money_supported: false
         },
         "GH" => {
           name: "Ghana",
@@ -23,7 +25,8 @@ module Tribetip
           stub_bank_name: "MTN Mobile Money",
           stub_settlement_bank: "MTN",
           stub_account_number: "0000000000",
-          subaccount_supported: true
+          subaccount_supported: true,
+          mobile_money_supported: true
         },
         "KE" => {
           name: "Kenya",
@@ -32,7 +35,8 @@ module Tribetip
           stub_bank_name: "KCB Bank",
           stub_settlement_bank: "68",
           stub_account_number: "0000000000",
-          subaccount_supported: true
+          subaccount_supported: true,
+          mobile_money_supported: true
         },
         "ZA" => {
           name: "South Africa",
@@ -41,7 +45,8 @@ module Tribetip
           stub_bank_name: "ABSA Bank",
           stub_settlement_bank: "632005",
           stub_account_number: "0000000000",
-          subaccount_supported: true
+          subaccount_supported: true,
+          mobile_money_supported: false
         },
         "CI" => {
           name: "Côte d'Ivoire",
@@ -50,7 +55,8 @@ module Tribetip
           stub_bank_name: "Stub Bank",
           stub_settlement_bank: "CI001",
           stub_account_number: "0000000000",
-          subaccount_supported: false
+          subaccount_supported: false,
+          mobile_money_supported: false
         }
       }.freeze
 
@@ -71,7 +77,8 @@ module Tribetip
       end
 
       def initialize(country_code:, name:, currency:, paystack_bank_country:,
-                     stub_bank_name:, stub_settlement_bank:, stub_account_number:, subaccount_supported:)
+                     stub_bank_name:, stub_settlement_bank:, stub_account_number:,
+                     subaccount_supported:, mobile_money_supported:)
         @country_code = country_code
         @name = name
         @currency = currency
@@ -80,10 +87,15 @@ module Tribetip
         @stub_settlement_bank = stub_settlement_bank
         @stub_account_number = stub_account_number
         @subaccount_supported = subaccount_supported
+        @mobile_money_supported = mobile_money_supported
       end
 
       def subaccount_supported?
         subaccount_supported
+      end
+
+      def mobile_money_supported?
+        mobile_money_supported
       end
 
       def currency_matches?(value)
@@ -106,7 +118,8 @@ module Tribetip
           name: name,
           currency: currency,
           paystack_bank_country: paystack_bank_country,
-          subaccount_supported: subaccount_supported
+          subaccount_supported: subaccount_supported,
+          mobile_money_supported: mobile_money_supported
         }
       end
     end
