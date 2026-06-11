@@ -48,7 +48,9 @@ RSpec.describe "Paystack onboarding", type: :request do
       expect(json.dig("onboarding", "verification")).to be_present
       expect(json.dig("payout", "subaccount_verified")).to be_in([ true, false ])
       expect(json.dig("market", "country_code")).to eq("NG")
+      expect(json.dig("market", "mobile_money_supported")).to be(false)
       expect(json.fetch("banks").first).to include("name" => "Zenith Bank", "code" => "057")
+      expect(json.fetch("banks")).not_to include(hash_including("code" => "MPESA"))
     end
 
     it "returns Kenya market banks for Kenyan creators" do
@@ -59,6 +61,7 @@ RSpec.describe "Paystack onboarding", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(json.dig("market", "currency")).to eq("KES")
+      expect(json.dig("market", "mobile_money_supported")).to be(true)
       banks = json.fetch("banks")
       expect(banks.first).to include("name" => "KCB Bank", "code" => "68")
       expect(banks).to include(hash_including("name" => "M-PESA", "code" => "MPESA", "mobile_money" => true))
