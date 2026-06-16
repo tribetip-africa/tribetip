@@ -106,10 +106,11 @@ module Tribetip
         {
           tribe_id: tribe.id,
           username: tribe.username,
+          subaccount_code: tribe.paystack_subaccount_code,
           country_code: country_code,
           currency: currency,
           paystack_bank_country: paystack_bank_country
-        }
+        }.compact
       end
 
       def as_json(*)
