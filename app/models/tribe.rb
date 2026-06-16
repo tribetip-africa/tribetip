@@ -51,6 +51,7 @@ class Tribe < ApplicationRecord
   validates :default_tip_amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :account_status, inclusion: { in: VALID_ACCOUNT_STATUSES }
   validates :role, inclusion: { in: VALID_ROLES }
+  validates :tip_share_token, uniqueness: { case_sensitive: true }, allow_nil: true
   validate :email_acceptable_for_paystack, on: :create
   validate :admin_cannot_have_public_profile
 
@@ -159,6 +160,7 @@ class Tribe < ApplicationRecord
     return if username.blank?
 
     Tribetip::SecureCache.delete(Tribetip::SecureCache.public_profile_key(username))
+    Tribetip::ShareLinks.purge_share_cache!(tip_share_token) if tip_share_token.present?
     Tribetip::SecureCache.bump_version!(:public) if saved_change_to_username?
   end
 
