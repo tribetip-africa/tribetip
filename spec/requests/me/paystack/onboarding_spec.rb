@@ -140,5 +140,30 @@ RSpec.describe "Paystack onboarding", type: :request do
       expect(json.dig("market", "country_code")).to eq("KE")
       expect(tribe.reload.paystack_subaccount_code).to be_present
     end
+
+    it "rejects idempotency key reuse with a different payload" do
+      tribe = tribe_without_subaccount(username: "onboard_idem_payload")
+      headers = bearer_token_for(tribe).merge("Idempotency-Key" => "onboarding-payload-key")
+
+      post "/me/paystack/onboarding",
+           params: { onboarding: { settlement_bank: "057", account_number: "0123456789" } },
+           headers: headers,
+           as: :json
+
+      expect(response).to have_http_status(:ok)
+
+      tribe.update!(
+        paystack_subaccount_code: nil,
+        onboarding_completed_at: nil
+      )
+
+      post "/me/paystack/onboarding",
+           params: { onboarding: { settlement_bank: "057", account_number: "9999999999" } },
+           headers: headers,
+           as: :json
+
+      expect(response).to have_http_status(:bad_request)
+      expect(json.dig("error", "message")).to match(/Idempotency-Key/)
+    end
   end
 end
