@@ -22,6 +22,14 @@ class Rack::Attack
   end
 
   throttle(
+    "share_profiles/ip",
+    limit: ENV.fetch("RACK_ATTACK_SHARE_PROFILE_LIMIT", 60).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.ip if req.get? && req.path.match?(%r{\A/share/[A-Za-z0-9_-]{20,48}\z})
+  end
+
+  throttle(
     "tips/ip",
     limit: ENV.fetch("RACK_ATTACK_TIPS_LIMIT", 30).to_i,
     period: 60.seconds
