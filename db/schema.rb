@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_15_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_16_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -54,8 +54,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_15_140000) do
     t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "namespace", default: "public", null: false
+    t.string "request_fingerprint", default: "unfingerprinted", null: false
     t.index ["expires_at"], name: "index_idempotency_keys_on_expires_at"
-    t.index ["scope", "key"], name: "index_idempotency_keys_on_scope_and_key", unique: true
+    t.index ["scope", "namespace", "key"], name: "index_idempotency_keys_on_scope_and_namespace_and_key", unique: true
   end
 
   create_table "jwt_denylists", force: :cascade do |t|
@@ -63,6 +65,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_15_140000) do
     t.datetime "exp", null: false
     t.index ["exp"], name: "index_jwt_denylists_on_exp"
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
+  end
+
+  create_table "payment_alerts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "kind", null: false
+    t.string "severity", default: "warning", null: false
+    t.string "title", null: false
+    t.text "body", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "resolved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_payment_alerts_on_created_at"
+    t.index ["kind"], name: "index_payment_alerts_on_kind"
+    t.index ["resolved_at"], name: "index_payment_alerts_on_resolved_at"
   end
 
   create_table "paystack_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -100,6 +116,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_15_140000) do
     t.index ["status"], name: "index_paystack_settlements_on_status"
     t.index ["tip_id"], name: "index_paystack_settlements_on_tip_id"
     t.index ["tribe_id", "settled_at"], name: "index_paystack_settlements_on_tribe_id_and_settled_at"
+    t.index ["tribe_id", "tip_id"], name: "index_paystack_settlements_on_tribe_id_and_tip_id_unique", unique: true, where: "(tip_id IS NOT NULL)"
     t.index ["tribe_id"], name: "index_paystack_settlements_on_tribe_id"
   end
 
