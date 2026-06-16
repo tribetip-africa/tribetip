@@ -66,6 +66,58 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
     )
   end
 
+  it "links a settlement to a tip via paystack reference" do
+    tribe = create_tribe(username: "linked_settlement")
+    tip = tribe.tips.create!(
+      amount_cents: 50_000,
+      currency: "KES",
+      status: "paid",
+      paystack_reference: "tip_linked_settlement",
+      supporter_email: "fan@example.com",
+      paid_at: 1.day.ago
+    )
+
+    result = described_class.call(
+      payload: {
+        transfer_code: "TRF_linked_tip",
+        amount: 47_500,
+        currency: "KES",
+        status: "success",
+        reference: tip.paystack_reference,
+        metadata: { tribe_id: tribe.id }
+      },
+      event_type: "transfer.success"
+    )
+
+    expect(result.settlement.tip_id).to eq(tip.id)
+  end
+
+  it "links a settlement to a tip via metadata tip_id" do
+    tribe = create_tribe(username: "metadata_tip_link")
+    tip = tribe.tips.create!(
+      amount_cents: 50_000,
+      currency: "KES",
+      status: "paid",
+      paystack_reference: "tip_metadata_link",
+      supporter_email: "fan@example.com",
+      paid_at: 1.day.ago
+    )
+
+    result = described_class.call(
+      payload: {
+        transfer_code: "TRF_metadata_tip",
+        amount: 47_500,
+        currency: "KES",
+        status: "success",
+        reference: "wd_sim_unrelated",
+        metadata: { tribe_id: tribe.id, tip_id: tip.id }
+      },
+      event_type: "transfer.success"
+    )
+
+    expect(result.settlement.tip_id).to eq(tip.id)
+  end
+
   it "upserts settlement rows from sync records" do
     tribe = create_tribe(username: "sync_settlement")
     record = Tribetip::Paystack::SettlementRecord.new(
