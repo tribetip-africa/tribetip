@@ -104,12 +104,11 @@ module Tribetip
         end
 
         subaccount = @client.fetch_subaccount(@tribe.paystack_subaccount_code)
-        totals = @client.fetch_transaction_totals(subaccount: @tribe.paystack_subaccount_code)
         data = subaccount.data.is_a?(Hash) ? subaccount.data : {}
-        totals_data = totals.data.is_a?(Hash) ? totals.data : {}
+        earnings = Tribetip::Metrics::CreatorSummary.call(@tribe)
+        available = AvailableBalance.local_available_cents(@tribe)
 
         verified = data["is_verified"] == true
-        pending = totals_data["pending_transfers"].to_i
         currency = data["currency"].presence || @market.currency
         schedule = data["settlement_schedule"]
 
@@ -119,9 +118,9 @@ module Tribetip
           account_number: data["account_number"],
           account_name: data["account_name"],
           settlement_schedule: schedule,
-          pending_cents: pending,
-          total_transactions: totals_data["total_transactions"].to_i,
-          total_volume_cents: totals_data["total_volume"].to_i,
+          pending_cents: available,
+          total_transactions: earnings.paid_tips_count,
+          total_volume_cents: earnings.total_earned_cents,
           currency: currency
         )
       end
@@ -130,6 +129,7 @@ module Tribetip
         ready = @tribe.paystack_subaccount_ready?
         verified = ready
         capabilities = FetchPayoutCapabilities.call(client: @client)
+        earnings = Tribetip::Metrics::CreatorSummary.call(@tribe)
 
         status_for(
           verified: verified,
@@ -138,13 +138,23 @@ module Tribetip
           settlement_schedule: PayoutMode.settlement_schedule(
             transfers_supported: capabilities.transfers_supported
           ),
-          pending_cents: stub_pending_settlement_cents,
+          pending_cents: AvailableBalance.local_available_cents(@tribe),
+          total_transactions: earnings.paid_tips_count,
+          total_volume_cents: earnings.total_earned_cents,
           currency: @market.currency
         )
       end
 
       def status_for(verified:, settlement_bank:, account_number:, settlement_schedule:, pending_cents:, currency:,
                      account_name: nil, total_transactions: nil, total_volume_cents: nil)
+        earnings_count = total_transactions
+        earnings_volume = total_volume_cents
+        if earnings_count.nil? || earnings_volume.nil?
+          earnings = Tribetip::Metrics::CreatorSummary.call(@tribe)
+          earnings_count ||= earnings.paid_tips_count
+          earnings_volume ||= earnings.total_earned_cents
+        end
+
         Status.new(
           subaccount_verified: verified,
           settlement_bank: settlement_bank,
@@ -154,17 +164,13 @@ module Tribetip
           settlement_schedule_label: settlement_schedule_label(settlement_schedule),
           pending_settlement_cents: pending_cents.positive? ? pending_cents : nil,
           available_to_settle_cents: pending_cents,
-          total_transactions: total_transactions,
-          total_volume_cents: total_volume_cents,
+          total_transactions: earnings_count.positive? ? earnings_count : nil,
+          total_volume_cents: earnings_volume.positive? ? earnings_volume : nil,
           currency: currency,
           can_publish: publish_allowed?(verified),
           publish_blocker: publish_blocker_message(verified),
           refreshed_at: Time.current.iso8601
         )
-      end
-
-      def stub_pending_settlement_cents
-        AvailableBalance.call(@tribe).amount_cents
       end
 
       def settlement_schedule_label(schedule)
