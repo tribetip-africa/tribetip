@@ -22,7 +22,7 @@ module Tribetip
         event = PaystackEvent.create!(
           event_id: event_id,
           event_type: @payload.fetch("event"),
-          payload: @payload,
+          payload: redacted_payload,
           status: "pending",
           tip_id: tip_id_for_payload
         )
@@ -63,6 +63,10 @@ module Tribetip
         return if reference.blank?
 
         Tip.find_by(paystack_reference: reference)&.id
+      end
+
+      def redacted_payload
+        RedactWebhookPayload.call(@payload)
       end
     end
   end
