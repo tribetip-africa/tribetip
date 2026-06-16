@@ -8,7 +8,19 @@ paid_tips = tribe.tips.paid.order(paid_at: :desc)
 linked_tip = paid_tips.first
 raise "No paid tips for @#{tribe.username} — record a tip first, then simulate settlement." unless linked_tip
 
-transfer_code = "TRF_sim_#{SecureRandom.hex(6)}"
+transfer_code = Tribetip::Paystack::SettlementRecord.transfer_code_for_tip(linked_tip)
+existing = tribe.paystack_settlements.find_by(tip_id: linked_tip.id) ||
+           PaystackSettlement.find_by(paystack_transfer_code: transfer_code)
+
+if existing&.status == "success"
+  puts "Settlement already recorded for @#{tribe.username}"
+  puts "  transfer_code: #{existing.paystack_transfer_code}"
+  puts "  linked_tip:    #{linked_tip.paystack_reference}"
+  puts ""
+  puts "No duplicate created. Re-run Paystack sync or repair if you need to reconcile remote data."
+  exit 0
+end
+
 gross_paid = paid_tips.sum(:amount_cents)
 amount_cents = amount_arg.present? ? amount_arg.to_i : Tribetip::Paystack::SettlementRecord.net_settlement_cents(gross_paid)
 amount_cents = Tribetip::Paystack::SettlementRecord.net_settlement_cents(linked_tip.amount_cents) if amount_cents <= 0
@@ -44,9 +56,7 @@ result = Tribetip::Paystack::RecordSettlement.call(
 settlement = result.settlement
 raise "Settlement was skipped — check tribe subaccount / payload" unless settlement
 
-settlement.update!(tip: linked_tip) if settlement.tip_id.blank?
-
-Tribetip::Notifications::RecordSettlement.call(settlement, event_type: "transfer.success")
+Tribetip::Notifications::RecordSettlement.call(settlement, event_type: "transfer.success") if settlement.previously_new_record?
 
 units = format("%.2f", amount_cents / 100.0)
 notification = tribe.creator_notifications.order(created_at: :desc).first
