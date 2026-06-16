@@ -6,15 +6,15 @@ module Tribetip
       extend ActiveSupport::Concern
 
       included do
+        unless Rails.application.config.consider_all_requests_local
+          rescue_from StandardError, with: :render_internal_error
+        end
+
         rescue_from Tribetip::Errors::Base, with: :render_tribetip_error
         rescue_from ActiveRecord::RecordNotFound, with: :render_record_not_found
         rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
         rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
         rescue_from ActionController::BadRequest, with: :render_bad_request
-
-        unless Rails.application.config.consider_all_requests_local
-          rescue_from StandardError, with: :render_internal_error
-        end
       end
 
       private
