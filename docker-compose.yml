@@ -1,0 +1,61 @@
+x-app-environment: &app-environment
+  DB_HOST: db
+  DB_USERNAME: tribetip
+  TRIBETIP_DATABASE_PASSWORD: tribetip
+  DB_POOL: "10"
+  APP_HOSTS: localhost,127.0.0.1
+  TRIBETIP_ALLOW_NGROK_HOSTS: "true"
+  TRIBETIP_PLATFORM_URL: http://localhost:3000
+  TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "false"
+  TRIBETIP_SEED_ENABLED: "true"
+  TRIBETIP_SEED_PASSWORD: localdev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tribetip
+      POSTGRES_PASSWORD: tribetip
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tribetip"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "${API_PORT:-3001}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      <<: *app-environment
+    volumes:
+      - storage:/rails/storage
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["./bin/jobs"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    env_file:
+      - .env.docker
+    environment:
+      <<: *app-environment
+      JOB_CONCURRENCY: "2"
+    volumes:
+      - storage:/rails/storage
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  storage:
