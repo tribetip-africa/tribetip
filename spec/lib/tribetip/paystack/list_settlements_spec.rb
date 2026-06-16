@@ -33,6 +33,23 @@ RSpec.describe Tribetip::Paystack::ListSettlements do
     expect(settlements.settlements.first.amount_cents).to eq(47_500)
   end
 
+  it "does not create duplicate stub settlements when refreshed repeatedly" do
+    tribe = create_tribe(username: "settlements_refresh")
+    tribe.tips.create!(
+      amount_cents: 50_000,
+      currency: "KES",
+      status: "paid",
+      paystack_reference: "tip_settlement_refresh",
+      supporter_email: "fan@example.com",
+      paid_at: 2.days.ago
+    )
+
+    described_class.call(tribe, refresh: true)
+    described_class.call(tribe, refresh: true)
+
+    expect(PaystackSettlement.where(tribe: tribe).count).to eq(1)
+  end
+
   it "returns an empty list when no payouts are linked" do
     tribe = Tribe.create!(
       email: "unsettled@tribetip.africa",
