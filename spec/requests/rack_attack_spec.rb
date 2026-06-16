@@ -22,6 +22,18 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     count.times { get "/tribes/#{username}" }
   end
 
+  def create_tip(reference:)
+    tribe = create_public_tribe(username: "throttle_tip_#{SecureRandom.hex(4)}")
+    complete_stub_paystack_onboarding!(tribe)
+    tribe.tips.create!(
+      amount_cents: 50_000,
+      currency: "KES",
+      status: "pending",
+      paystack_reference: reference,
+      supporter_email: "fan@example.com"
+    )
+  end
+
   it "rate limits repeated public profile lookups" do
     Rack::Attack.reset!
     create_public_tribe(username: "throttle_me")
@@ -32,5 +44,29 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     body = JSON.parse(response.body)
     expect(body.dig("error", "code")).to eq("rate_limited")
     expect(body.dig("error", "message")).to match(/too many requests/i)
+  end
+
+  it "rate limits repeated public checkout polling for the same reference" do
+    Rack::Attack.reset!
+    tip = create_tip(reference: "tip_checkout_throttle")
+
+    10.times { get "/tips/checkout/#{tip.paystack_reference}" }
+    get "/tips/checkout/#{tip.paystack_reference}"
+
+    expect(response).to have_http_status(429)
+    body = JSON.parse(response.body)
+    expect(body.dig("error", "code")).to eq("rate_limited")
+  end
+
+  it "rate limits repeated public reconciliation for the same reference" do
+    Rack::Attack.reset!
+    tip = create_tip(reference: "tip_reconcile_throttle")
+
+    10.times { post "/tips/#{tip.paystack_reference}/reconcile", as: :json }
+    post "/tips/#{tip.paystack_reference}/reconcile", as: :json
+
+    expect(response).to have_http_status(429)
+    body = JSON.parse(response.body)
+    expect(body.dig("error", "code")).to eq("rate_limited")
   end
 end
