@@ -25,3 +25,7 @@ production:
     class: Paystack::SyncSettlementsJob
     queue: default
     schedule: every hour at minute 45
+  reconcile_platform:
+    class: Paystack::ReconcilePlatformJob
+    queue: default
+    schedule: every 6 hours
