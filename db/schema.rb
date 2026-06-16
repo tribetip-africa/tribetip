@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_08_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_15_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -184,6 +184,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_170000) do
     t.string "paystack_customer_code"
     t.string "paystack_subaccount_code"
     t.string "paystack_provisioning_error"
+    t.string "tip_share_token"
     t.index ["account_status"], name: "index_tribes_on_account_status"
     t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_tribes_on_confirmed_at", where: "(confirmed_at IS NOT NULL)"
@@ -194,6 +195,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_08_170000) do
     t.index ["paystack_subaccount_code"], name: "index_tribes_on_paystack_subaccount_code", unique: true, where: "(paystack_subaccount_code IS NOT NULL)"
     t.index ["reset_password_token"], name: "index_tribes_on_reset_password_token", unique: true
     t.index ["role"], name: "index_tribes_on_role"
+    t.index ["tip_share_token"], name: "index_tribes_on_tip_share_token", unique: true, where: "(tip_share_token IS NOT NULL)"
     t.index ["unlock_token"], name: "index_tribes_on_unlock_token", unique: true
     t.index ["username"], name: "index_tribes_on_username", unique: true, where: "(username IS NOT NULL)"
   end
