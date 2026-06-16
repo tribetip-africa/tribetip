@@ -27,6 +27,7 @@ module Tribetip
         tip = find_tip
         return unless tip
 
+        verify_tip_metadata!(tip)
         link_paystack_event!(tip)
         Tribetip::Paystack::ReconcileTipPayment.call(
           tip,
@@ -55,6 +56,29 @@ module Tribetip
         return if reference.blank?
 
         Tip.find_by(paystack_reference: reference)
+      end
+
+      def verify_tip_metadata!(tip)
+        data = @event["data"]
+        return unless data.is_a?(Hash)
+
+        metadata = data["metadata"]
+        return unless metadata.is_a?(Hash)
+
+        metadata = metadata.with_indifferent_access
+        if metadata[:tip_id].present? && metadata[:tip_id].to_s != tip.id.to_s
+          raise Tribetip::Errors::BadRequest.new(
+            "Paystack tip metadata does not match the referenced tip.",
+            details: { expected_tip_id: tip.id, metadata_tip_id: metadata[:tip_id] }
+          )
+        end
+
+        if metadata[:tribe_id].present? && metadata[:tribe_id].to_s != tip.tribe_id.to_s
+          raise Tribetip::Errors::BadRequest.new(
+            "Paystack tribe metadata does not match the referenced tip.",
+            details: { expected_tribe_id: tip.tribe_id, metadata_tribe_id: metadata[:tribe_id] }
+          )
+        end
       end
     end
   end
