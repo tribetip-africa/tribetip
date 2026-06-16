@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+ensure_env_file() {
+  if [[ -f .env.docker ]]; then
+    return
+  fi
+
+  if [[ ! -f .env.docker.example ]]; then
+    echo "Missing .env.docker.example" >&2
+    exit 1
+  fi
+
+  cp .env.docker.example .env.docker
+
+  if [[ -f config/master.key ]]; then
+    master_key="$(tr -d '[:space:]' < config/master.key)"
+    if [[ -n "$master_key" ]]; then
+      if grep -q '^RAILS_MASTER_KEY=' .env.docker; then
+        sed -i '' "s/^RAILS_MASTER_KEY=.*/RAILS_MASTER_KEY=${master_key}/" .env.docker
+      else
+        echo "RAILS_MASTER_KEY=${master_key}" >> .env.docker
+      fi
+    fi
+  fi
+
+  if ! grep -q '^DEVISE_JWT_SECRET_KEY=.\+' .env.docker; then
+    jwt_secret="$(bin/rails secret 2>/dev/null || true)"
+    if [[ -n "$jwt_secret" ]]; then
+      if grep -q '^DEVISE_JWT_SECRET_KEY=' .env.docker; then
+        sed -i '' "s/^DEVISE_JWT_SECRET_KEY=.*/DEVISE_JWT_SECRET_KEY=${jwt_secret}/" .env.docker
+      else
+        echo "DEVISE_JWT_SECRET_KEY=${jwt_secret}" >> .env.docker
+      fi
+    fi
+  fi
+
+  sync_paystack_env_from_dotenv
+
+  echo "Created .env.docker — review secrets before sharing or deploying."
+}
+
+sync_paystack_env_from_dotenv() {
+  [[ -f .env ]] || return
+
+  # shellcheck disable=SC1091
+  source .env
+
+  if [[ -n "${PAYSTACK_SECRET_KEY:-}" ]]; then
+    if grep -q '^PAYSTACK_SECRET_KEY=' .env.docker; then
+      sed -i '' "s|^PAYSTACK_SECRET_KEY=.*|PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}|" .env.docker
+    else
+      echo "PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}" >> .env.docker
+    fi
+  fi
+
+  if [[ -n "${PAYSTACK_PLATFORM_FEE_PERCENT:-}" ]]; then
+    if grep -q '^PAYSTACK_PLATFORM_FEE_PERCENT=' .env.docker; then
+      sed -i '' "s/^PAYSTACK_PLATFORM_FEE_PERCENT=.*/PAYSTACK_PLATFORM_FEE_PERCENT=${PAYSTACK_PLATFORM_FEE_PERCENT}/" .env.docker
+    else
+      echo "PAYSTACK_PLATFORM_FEE_PERCENT=${PAYSTACK_PLATFORM_FEE_PERCENT}" >> .env.docker
+    fi
+  fi
+}
+
+ensure_env_file
+exec docker compose --env-file .env.docker "$@"
