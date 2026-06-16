@@ -79,7 +79,9 @@ module Tribetip
             }.compact
           )
 
-          complete_stub_withdrawal!(settlement) if @client.stub_mode? && settlement.status != "success"
+          if settlement.status != "success" && (@client.stub_mode? || @client.simulate_transfers?)
+            complete_stub_withdrawal!(settlement)
+          end
 
           FetchPayoutStatus.invalidate_cache(@tribe)
           ListSettlements.invalidate_cache(@tribe)
