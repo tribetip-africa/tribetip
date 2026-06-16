@@ -6,7 +6,7 @@ class TipsController < ApplicationController
   include Idempotable
   include AuditRequestContext
 
-  CHECKOUT_WAIT = 25.seconds
+  CHECKOUT_WAIT = ENV.fetch("TRIBETIP_CHECKOUT_WAIT_SECONDS", 10).to_i.seconds
 
   def create
     apply_http_cache_policy(:no_store)
@@ -55,7 +55,7 @@ class TipsController < ApplicationController
 
     tip = Tip.find_by!(paystack_reference: params[:paystack_reference])
     reconcile_tip!(tip)
-    render json: { tip: tip_json(tip.reload, include_checkout: true) }, status: :ok
+    render json: { tip: public_tip_json(tip.reload, include_checkout: true) }, status: :ok
   end
 
   def reconcile
@@ -65,16 +65,17 @@ class TipsController < ApplicationController
     result = reconcile_tip!(tip)
 
     if result.success?
-      render json: { message: "Tip payment reconciled.", tip: tip_json(tip.reload) }, status: :ok
+      render json: { message: "Tip payment reconciled.", tip: public_tip_json(tip.reload) }, status: :ok
     else
-      render json: { message: result.message, tip: tip_json(tip.reload) }, status: :accepted
+      render json: { message: result.message, tip: public_tip_json(tip.reload) }, status: :accepted
     end
   end
 
   private
 
   def replay_idempotent_tip_checkout
-    cached = IdempotencyKey.find_active(scope: "tip_checkout", key: idempotency_key_header)
+    cached = find_idempotency_cache("tip_checkout")
+    return true if performed?
     return false unless cached
 
     render json: cached.response_body, status: cached.response_code
@@ -99,13 +100,12 @@ class TipsController < ApplicationController
   def render_checkout_response(tip, status:)
     body = {
       message: status == :created ? "Tip checkout initialized." : "Tip checkout is still processing.",
-      tip: tip_json(tip, include_checkout: true)
+      tip: public_tip_json(tip, include_checkout: true)
     }
 
     if idempotency_key_header.present?
-      IdempotencyKey.store!(
+      store_idempotency_cache!(
         scope: "tip_checkout",
-        key: idempotency_key_header,
         response_code: Rack::Utils.status_code(status),
         response_body: body
       )
