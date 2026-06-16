@@ -14,9 +14,17 @@ Rails.application.routes.draw do
                           constraints: { username: /[a-z0-9_]+/ },
                           as: :public_profile
 
+  get "share/:token", to: "share_profiles#show",
+                      constraints: { token: /[A-Za-z0-9_-]{20,48}/ },
+                      as: :share_profile
+
   namespace :me do
     resource :profile, only: %i[show update], controller: "profiles" do
       post :publish
+    end
+
+    resource :share_link, only: %i[show], controller: "share_links" do
+      post :rotate
     end
 
     resources :tips, only: %i[index show] do
