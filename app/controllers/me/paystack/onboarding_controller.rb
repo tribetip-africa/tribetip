@@ -7,8 +7,8 @@ module Me
 
       before_action :authenticate_tribe!
       before_action :ensure_creator_for_paystack!
-      ONBOARDING_WAIT = 30.seconds
-      CUSTOMER_WAIT = 20.seconds
+      ONBOARDING_WAIT = ENV.fetch("TRIBETIP_ONBOARDING_WAIT_SECONDS", 10).to_i.seconds
+      CUSTOMER_WAIT = ENV.fetch("TRIBETIP_CUSTOMER_WAIT_SECONDS", 5).to_i.seconds
 
       def show
         apply_http_cache_policy(:no_store)
@@ -34,7 +34,8 @@ module Me
         apply_http_cache_policy(:no_store)
 
         if idempotency_key_header.present?
-          cached = IdempotencyKey.find_active(scope: "paystack_onboarding", key: idempotency_key_header)
+          cached = find_idempotency_cache("paystack_onboarding")
+          return if performed?
           return render json: cached.response_body, status: cached.response_code if cached
         end
 
@@ -54,9 +55,8 @@ module Me
         }
 
         if idempotency_key_header.present?
-          IdempotencyKey.store!(
+          store_idempotency_cache!(
             scope: "paystack_onboarding",
-            key: idempotency_key_header,
             response_code: 200,
             response_body: body
           )
