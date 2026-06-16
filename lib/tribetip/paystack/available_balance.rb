@@ -25,32 +25,21 @@ module Tribetip
         @market = Market.for_tribe(tribe)
       end
 
-      def call(refresh: false)
-        if @client.stub_mode?
-          return Result.new(
-            amount_cents: stub_available_cents,
-            currency: @tribe.currency,
-            source: "stub"
-          )
-        end
-
-        payout = FetchPayoutStatus.call(@tribe, refresh: refresh)
-        Result.new(
-          amount_cents: payout.available_to_settle_cents.to_i,
-          currency: payout.currency.presence || @tribe.currency,
-          source: "paystack"
-        )
-      end
-
-      private
-
-      def stub_available_cents
-        net_earned_cents = @tribe.tips.paid.sum do |tip|
+      def self.local_available_cents(tribe)
+        net_earned_cents = tribe.tips.paid.sum do |tip|
           SettlementRecord.net_settlement_cents(tip.amount_cents)
         end
-        reserved_cents = @tribe.paystack_settlements.where(status: RESERVED_STATUSES).sum(:amount_cents)
+        reserved_cents = tribe.paystack_settlements.where(status: RESERVED_STATUSES).sum(:amount_cents)
 
         [ net_earned_cents - reserved_cents, 0 ].max
+      end
+
+      def call(refresh: false)
+        Result.new(
+          amount_cents: self.class.local_available_cents(@tribe),
+          currency: @tribe.currency,
+          source: @client.stub_mode? ? "stub" : "database"
+        )
       end
     end
   end
