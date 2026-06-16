@@ -6,6 +6,7 @@ class AdminAuditLog < ApplicationRecord
     activate_tribe
     replay_paystack_event
     paystack_audit_sync
+    platform_reconciliation_run
   ].freeze
 
   belongs_to :admin, class_name: "Tribe", foreign_key: :admin_id, inverse_of: false
