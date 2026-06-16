@@ -37,6 +37,38 @@ class Rack::Attack
     req.ip if req.post? && req.path == "/tips"
   end
 
+  throttle(
+    "tip_checkout/ip",
+    limit: ENV.fetch("RACK_ATTACK_TIP_CHECKOUT_LIMIT", 30).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.ip if req.get? && req.path.match?(%r{\A/tips/checkout/[A-Za-z0-9_-]+\z})
+  end
+
+  throttle(
+    "tip_checkout/reference",
+    limit: ENV.fetch("RACK_ATTACK_TIP_REFERENCE_LIMIT", 10).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.path if req.get? && req.path.match?(%r{\A/tips/checkout/[A-Za-z0-9_-]+\z})
+  end
+
+  throttle(
+    "tip_reconcile/ip",
+    limit: ENV.fetch("RACK_ATTACK_TIP_RECONCILE_LIMIT", 20).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.ip if req.post? && req.path.match?(%r{\A/tips/[A-Za-z0-9_-]+/reconcile\z})
+  end
+
+  throttle(
+    "tip_reconcile/reference",
+    limit: ENV.fetch("RACK_ATTACK_TIP_REFERENCE_LIMIT", 10).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.path if req.post? && req.path.match?(%r{\A/tips/[A-Za-z0-9_-]+/reconcile\z})
+  end
+
   throttle("paystack_repair/ip", limit: 6, period: 5.minutes) do |req|
     req.ip if req.post? && req.path == "/me/paystack/repair"
   end
