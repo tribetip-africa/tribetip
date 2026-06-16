@@ -38,14 +38,7 @@ module Me
           return render json: cached.response_body, status: cached.response_code if cached
         end
 
-        ::Paystack::ProvisionSubaccountJob.perform_later(
-          current_tribe.id,
-          settlement_bank: onboarding_params[:settlement_bank],
-          account_number: onboarding_params[:account_number],
-          business_name: onboarding_params[:business_name]
-        )
-
-        unless wait_for_subaccount_link!
+        unless provision_subaccount!
           message = current_tribe.reload.paystack_provisioning_error.presence ||
             "Payout setup is still processing. Please wait a moment and refresh."
           return render_error(Tribetip::Errors::BadRequest.new(message))
@@ -83,7 +76,53 @@ module Me
         return if current_tribe.paystack_customer_code.present?
         return unless current_tribe.paystack_market.subaccount_supported?
 
+        if paystack_client.stub_mode?
+          result = Tribetip::Paystack::ProvisionCustomer.call(current_tribe)
+          return if result.success?
+
+          current_tribe.update!(paystack_provisioning_error: result.message)
+          return
+        end
+
+        return if paystack_job_pending?(
+          job_class: ::Paystack::ProvisionCustomerJob,
+          arguments: [ current_tribe.id ]
+        )
+
         ::Paystack::ProvisionCustomerJob.perform_later(current_tribe.id)
+      end
+
+      def provision_subaccount!
+        if paystack_client.stub_mode?
+          result = Tribetip::Paystack::ProvisionSubaccount.call(
+            current_tribe,
+            settlement_bank: onboarding_params[:settlement_bank],
+            account_number: onboarding_params[:account_number],
+            business_name: onboarding_params[:business_name]
+          )
+          return result.success?
+        end
+
+        ::Paystack::ProvisionSubaccountJob.perform_later(
+          current_tribe.id,
+          settlement_bank: onboarding_params[:settlement_bank],
+          account_number: onboarding_params[:account_number],
+          business_name: onboarding_params[:business_name]
+        )
+
+        wait_for_subaccount_link!
+      end
+
+      def paystack_client
+        @paystack_client ||= Tribetip::Paystack::Client.new
+      end
+
+      def paystack_job_pending?(job_class:, arguments:)
+        SolidQueue::Job.where(class_name: job_class.name, finished_at: nil)
+          .where("arguments::jsonb -> 'arguments' = ?", arguments.to_json)
+          .exists?
+      rescue StandardError
+        false
       end
 
       def wait_for_customer_if_needed!
