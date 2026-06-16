@@ -24,7 +24,8 @@ module Me
         apply_http_cache_policy(:no_store)
 
         if idempotency_key_header.present?
-          cached = IdempotencyKey.find_active(scope: "paystack_withdrawal", key: idempotency_key_header)
+          cached = find_idempotency_cache("paystack_withdrawal")
+          return if performed?
           return render json: cached.response_body, status: cached.response_code if cached
         end
 
@@ -44,9 +45,8 @@ module Me
         }
 
         if idempotency_key_header.present?
-          IdempotencyKey.store!(
+          store_idempotency_cache!(
             scope: "paystack_withdrawal",
-            key: idempotency_key_header,
             response_code: 200,
             response_body: body
           )
