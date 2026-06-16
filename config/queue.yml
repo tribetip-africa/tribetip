@@ -3,7 +3,8 @@ default: &default
     - polling_interval: 1
       batch_size: 500
   workers:
-    - queues: "webhooks,paystack,default"
+    # Use "*" — comma-separated queue names can prevent workers from polling (solid_queue #585).
+    - queues: "*"
       threads: 3
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
       polling_interval: 0.1
