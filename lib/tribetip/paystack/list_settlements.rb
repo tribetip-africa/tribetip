@@ -81,15 +81,29 @@ module Tribetip
 
         metadata[:tribe_id].to_s == @tribe.id.to_s ||
           metadata[:subaccount_code].to_s == @tribe.paystack_subaccount_code.to_s ||
-          metadata[:username].to_s == @tribe.username.to_s ||
           reason.include?(@tribe.paystack_subaccount_code.to_s)
       end
 
       def stub_settlements
         destination = stub_destination_label
-        @tribe.tips.paid.order(paid_at: :desc).limit(@limit).map do |tip|
-          SettlementRecord.from_stub_tip(tip, tribe: @tribe, destination: destination)
-        end
+        tips_needing_stub_settlement(destination)
+      end
+
+      def tips_needing_stub_settlement(destination)
+        settled_tip_ids = @tribe.paystack_settlements.where.not(tip_id: nil).pluck(:tip_id)
+        settled_references = @tribe.paystack_settlements.pluck(:reference).compact
+
+        @tribe.tips.paid
+          .where.not(id: settled_tip_ids)
+          .where.not(paystack_reference: settled_references)
+          .order(paid_at: :desc)
+          .limit(@limit)
+          .filter_map do |tip|
+            stub_code = SettlementRecord.transfer_code_for_tip(tip)
+            next if PaystackSettlement.exists?(paystack_transfer_code: stub_code)
+
+            SettlementRecord.from_stub_tip(tip, tribe: @tribe, destination: destination)
+          end
       end
 
       def stub_destination_label
