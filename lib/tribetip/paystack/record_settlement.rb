@@ -148,6 +148,14 @@ module Tribetip
       end
 
       def linked_tip_id(tribe, reference = nil)
+        metadata = @payload&.dig(:metadata)
+        metadata = metadata.with_indifferent_access if metadata.is_a?(Hash)
+        metadata_tip_id = metadata&.dig(:tip_id).presence
+        if metadata_tip_id
+          tip = tribe.tips.find_by(id: metadata_tip_id)
+          return tip.id if tip
+        end
+
         ref = reference.presence || @payload&.dig(:reference).presence || @record&.reference
         return if ref.blank?
 
