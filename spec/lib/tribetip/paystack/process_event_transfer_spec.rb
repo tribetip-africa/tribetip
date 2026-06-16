@@ -26,7 +26,8 @@ RSpec.describe Tribetip::Paystack::ProcessEvent do
         "currency" => "KES",
         "status" => "success",
         "metadata" => {
-          "tribe_id" => tribe.id
+          "tribe_id" => tribe.id,
+          "subaccount_code" => tribe.paystack_subaccount_code
         },
         "recipient" => {
           "details" => {
