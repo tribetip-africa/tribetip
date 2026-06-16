@@ -11,6 +11,7 @@ class PaystackSettlement < ApplicationRecord
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :currency, presence: true, inclusion: { in: Tribe::VALID_CURRENCIES }
   validates :status, inclusion: { in: STATUSES }
+  validates :tip_id, uniqueness: { scope: :tribe_id }, allow_nil: true
 
   scope :recent_first, -> { order(Arel.sql("COALESCE(settled_at, created_at) DESC")) }
 
