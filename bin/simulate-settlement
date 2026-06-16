@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Simulate a successful Paystack settlement (transfer.success) for local dev.
+#
+# Creates a settlement row and in-app notification. Skips email (no SMTP in Docker).
+#
+# Usage:
+#   bin/simulate-settlement bing              # net of paid tips (e.g. 475.00 KES)
+#   bin/simulate-settlement bing 95000        # amount in cents
+#   docker exec tribetip-api-1 bin/simulate-settlement bing
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+export SIMULATE_SETTLEMENT_USERNAME="${1:-bing}"
+export SIMULATE_SETTLEMENT_AMOUNT_CENTS="${2:-}"
+
+run_rails() {
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^tribetip-api-1$'; then
+    docker exec -i \
+      -e SIMULATE_SETTLEMENT_USERNAME \
+      -e SIMULATE_SETTLEMENT_AMOUNT_CENTS \
+      tribetip-api-1 bin/rails runner - < script/simulate_settlement.rb
+  else
+    bin/rails runner script/simulate_settlement.rb
+  fi
+}
+
+run_rails
