@@ -64,6 +64,9 @@ Rails.application.routes.draw do
     post "tribes/:id/repair", to: "repairs#create"
     get "paystack_events", to: "paystack_events#index"
     post "paystack_events/:id/replay", to: "paystack_events#replay"
+    get "payment_alerts", to: "payment_alerts#index"
+    get "paystack/reconciliation", to: "paystack/reconciliations#show"
+    post "paystack/reconciliation", to: "paystack/reconciliations#create"
     get "tips/:paystack_reference/investigate", to: "tips#investigate"
   end
 
