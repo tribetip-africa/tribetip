@@ -28,7 +28,7 @@ module Tribetip
         net_cents = net_settlement_cents(tip.amount_cents)
 
         new(
-          id: "settlement_#{tip.paystack_reference}",
+          id: transfer_code_for_tip(tip),
           amount_cents: net_cents,
           currency: tip.currency,
           status: "success",
@@ -36,6 +36,29 @@ module Tribetip
           destination: destination,
           reference: tip.paystack_reference
         )
+      end
+
+      def self.transfer_code_for_tip(tip)
+        transfer_code_for_reference(tip.paystack_reference)
+      end
+
+      def self.transfer_code_for_reference(reference)
+        return if reference.blank?
+
+        "settlement_#{reference}"
+      end
+
+      def self.authoritative_transfer_code?(code)
+        transfer_code_rank(code) >= 3
+      end
+
+      def self.transfer_code_rank(code)
+        return 0 if code.blank?
+        return 3 if code.match?(/\ATRF_/) && !code.start_with?("TRF_sim_")
+        return 2 if code.start_with?("settlement_")
+        return 1 if code.start_with?("TRF_sim_")
+
+        0
       end
 
       def self.net_settlement_cents(gross_cents)
