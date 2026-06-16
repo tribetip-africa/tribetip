@@ -30,11 +30,11 @@ module Tribetip
         attributes = build_attributes(tribe)
         return Result.new(skipped: true) if attributes[:paystack_transfer_code].blank?
 
-        settlement = PaystackSettlement.find_or_initialize_by(
-          paystack_transfer_code: attributes[:paystack_transfer_code]
-        )
+        settlement = find_or_build_settlement(tribe, attributes)
         previous_status = settlement.status if settlement.persisted?
+        previous_transfer_code = settlement.paystack_transfer_code
         settlement.assign_attributes(attributes)
+        restore_authoritative_transfer_code!(settlement, previous_transfer_code, attributes[:paystack_transfer_code])
         settlement.save!
 
         ListSettlements.invalidate_cache(tribe)
@@ -46,7 +46,8 @@ module Tribetip
           metadata: {
             paystack_transfer_code: settlement.paystack_transfer_code,
             status: settlement.status,
-            amount_cents: settlement.amount_cents
+            amount_cents: settlement.amount_cents,
+            tip_id: settlement.tip_id
           }
         )
 
@@ -64,10 +65,12 @@ module Tribetip
       end
 
       def record_attributes(tribe, record)
+        tip_id = linked_tip_id(tribe, record.reference)
+
         {
           tribe: tribe,
           paystack_event: @paystack_event,
-          tip_id: linked_tip_id(tribe),
+          tip_id: tip_id,
           paystack_transfer_code: record.id,
           amount_cents: record.amount_cents,
           currency: record.currency,
@@ -85,11 +88,12 @@ module Tribetip
       def payload_attributes(tribe)
         record = SettlementRecord.from_transfer(@payload, tribe: tribe)
         status = status_from_event_type || record.status
+        tip_id = linked_tip_id(tribe, record.reference)
 
         {
           tribe: tribe,
           paystack_event: @paystack_event,
-          tip_id: linked_tip_id(tribe, record.reference),
+          tip_id: tip_id,
           paystack_transfer_code: transfer_code,
           amount_cents: record.amount_cents,
           currency: record.currency,
@@ -98,11 +102,74 @@ module Tribetip
           destination: record.destination,
           reference: record.reference,
           metadata: {
-            source: "webhook",
+            source: metadata_source,
             event_type: @event_type,
             payload: @payload.except("recipient")
-          }
+          }.compact
         }
+      end
+
+      def metadata_source
+        source = @payload&.dig(:metadata, :source).presence
+        return source if source.present?
+
+        @event_type.present? ? "webhook" : "sync"
+      end
+
+      def find_or_build_settlement(tribe, attributes)
+        incoming_code = attributes[:paystack_transfer_code]
+        settlement = PaystackSettlement.find_by(paystack_transfer_code: incoming_code)
+        return settlement if settlement
+
+        tip_id = attributes[:tip_id]
+        tip_id ||= tip_id_for_reference(tribe, attributes[:reference])
+        attributes[:tip_id] = tip_id if tip_id.present?
+
+        if tip_id.present?
+          existing = tribe.paystack_settlements.find_by(tip_id: tip_id)
+          return reconcile_duplicate!(existing, attributes) if existing
+        end
+
+        stub_code = SettlementRecord.transfer_code_for_reference(attributes[:reference])
+        if stub_code.present?
+          existing = PaystackSettlement.find_by(paystack_transfer_code: stub_code)
+          return reconcile_duplicate!(existing, attributes) if existing
+        end
+
+        PaystackSettlement.new(paystack_transfer_code: incoming_code)
+      end
+
+      def reconcile_duplicate!(existing, attributes)
+        incoming_code = attributes[:paystack_transfer_code]
+        preferred_code = preferred_transfer_code(existing.paystack_transfer_code, incoming_code)
+
+        if preferred_code != existing.paystack_transfer_code &&
+           !PaystackSettlement.exists?(paystack_transfer_code: preferred_code)
+          existing.paystack_transfer_code = preferred_code
+        end
+
+        existing
+      end
+
+      def preferred_transfer_code(existing_code, incoming_code)
+        existing_rank = SettlementRecord.transfer_code_rank(existing_code)
+        incoming_rank = SettlementRecord.transfer_code_rank(incoming_code)
+
+        incoming_rank > existing_rank ? incoming_code : existing_code
+      end
+
+      def restore_authoritative_transfer_code!(settlement, previous_code, incoming_code)
+        return if previous_code.blank? || incoming_code.blank?
+        return if previous_code == incoming_code
+
+        preferred = preferred_transfer_code(previous_code, incoming_code)
+        settlement.paystack_transfer_code = preferred
+      end
+
+      def tip_id_for_reference(tribe, reference)
+        return if reference.blank?
+
+        tribe.tips.find_by(paystack_reference: reference)&.id
       end
 
       def transfer_code
@@ -123,20 +190,7 @@ module Tribetip
       def find_tribe_from_payload
         return if @payload.blank?
 
-        metadata = @payload[:metadata].is_a?(Hash) ? @payload[:metadata].with_indifferent_access : {}
-        tribe = Tribe.find_by(id: metadata[:tribe_id]) if metadata[:tribe_id].present?
-        return tribe if tribe
-
-        subaccount_code = metadata[:subaccount_code].to_s.presence
-        subaccount_code ||= subaccount_code_from_reason(@payload[:reason])
-        return if subaccount_code.blank?
-
-        Tribe.find_by(paystack_subaccount_code: subaccount_code)
-      end
-
-      def subaccount_code_from_reason(reason)
-        code = reason.to_s[/ACCT_[a-zA-Z0-9_]+/]
-        code.presence
+        ResolveSettlementTribe.call(@payload).tribe
       end
 
       def notify_creator_if_needed!(settlement, previous_status)
