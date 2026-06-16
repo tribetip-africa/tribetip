@@ -24,6 +24,11 @@ module Tribetip
         @secret_key.blank?
       end
 
+      # Local dev: keep real Paystack for tips/checkout but stub transfer API calls.
+      def simulate_transfers?
+        ActiveModel::Type::Boolean.new.cast(ENV["TRIBETIP_SIMULATE_TRANSFERS"])
+      end
+
       def create_customer(email:, first_name:, metadata: {})
         return stub_resource("cus") if stub_mode?
 
@@ -113,7 +118,9 @@ module Tribetip
       end
 
       def initiate_subaccount_withdrawal(subaccount:, amount_cents:, currency:, reference:, reason:, metadata: {})
-        return stub_initiate_transfer(reference: reference, amount_cents: amount_cents, currency: currency) if stub_mode?
+        if stub_mode? || simulate_transfers?
+          return stub_initiate_transfer(reference: reference, amount_cents: amount_cents, currency: currency)
+        end
 
         response = post("/transfer", {
           source: "balance",
@@ -346,6 +353,8 @@ module Tribetip
         JSON.parse(response.body)
       rescue JSON::ParserError
         { "status" => false, "message" => "Invalid Paystack response" }
+      rescue Timeout::Error, Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, OpenSSL::SSLError => error
+        { "status" => false, "message" => "Paystack is unreachable (#{error.class.name}). Check network connectivity." }
       end
     end
   end
