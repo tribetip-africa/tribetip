@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Expose the local Docker API (port 3001) to Paystack for webhook delivery.
+#
+# Prerequisites:
+#   1. bin/docker up --build          # API on :3001, worker running
+#   2. ngrok config add-authtoken ... # once per machine (https://dashboard.ngrok.com)
+#
+# Usage:
+#   bin/ngrok-webhook                 # tunnel to localhost:3001
+#   bin/ngrok-webhook 3001            # custom local port
+#
+# Then register in Paystack Dashboard → Settings → API Keys & Webhooks:
+#   https://<your-ngrok-host>/paystack/webhook
+#
+# Events to enable:
+#   charge.success, charge.failed,
+#   transfer.success, transfer.failed, transfer.reversed
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+API_PORT="${1:-${API_PORT:-3001}}"
+WEBHOOK_PATH="/paystack/webhook"
+
+if ! command -v ngrok >/dev/null 2>&1; then
+  echo "ngrok is not installed. Install from https://ngrok.com/download" >&2
+  exit 1
+fi
+
+if ! curl -sf "http://localhost:${API_PORT}/up" >/dev/null 2>&1; then
+  echo "API is not reachable at http://localhost:${API_PORT}/up" >&2
+  echo "Start the stack first: bin/docker up --build" >&2
+  exit 1
+fi
+
+echo "TribeTip Paystack webhook tunnel"
+echo "  Local API:  http://localhost:${API_PORT}"
+echo "  Webhook:    POST ${WEBHOOK_PATH}"
+echo ""
+echo "After ngrok starts, copy the https:// URL and add ${WEBHOOK_PATH} in Paystack."
+echo "Ensure bin/docker worker is running: bin/docker logs -f worker"
+echo ""
+
+exec ngrok http "${API_PORT}" --log=stdout
