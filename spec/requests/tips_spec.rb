@@ -38,6 +38,7 @@ RSpec.describe "Tips checkout", type: :request do
       expect(response).to have_http_status(:created)
       expect(json.dig("tip", "status")).to eq("pending")
       expect(json.dig("tip", "authorization_url")).to be_present
+      expect(json.fetch("tip")).not_to include("supporter_email", "supporter_name", "message")
       expect(Tip.count).to eq(1)
     end
 
@@ -78,6 +79,7 @@ RSpec.describe "Tips checkout", type: :request do
       expect(response).to have_http_status(:ok)
       expect(json.dig("tip", "status")).to eq("paid")
       expect(json.dig("tip", "paid_via")).to eq("reconcile")
+      expect(json.fetch("tip")).not_to include("supporter_email", "supporter_name", "message")
     end
   end
 end
