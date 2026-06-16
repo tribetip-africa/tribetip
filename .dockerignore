@@ -43,3 +43,14 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+/docker-compose.yml
+/bin/docker
+
+# Ignore test and editor files
+/spec
+/.idea
+/coverage
+
+# Ignore local Docker env (compose injects env at runtime)
+/.env.docker
+/.env.docker.example
