@@ -29,7 +29,7 @@ RSpec.describe Paystack::NotifySettlementJob, type: :job do
 
     expect do
       described_class.perform_now(settlement.id, "transfer.success")
-    end.to change { CreatorNotification.count }.by(1)
+    end.to change(CreatorNotification, :count).by(1)
   end
 
   it "sends a paid settlement email" do

@@ -155,11 +155,15 @@ RSpec.describe "Paystack webhooks", type: :request do
         }
       }.to_json
 
+      settlements_before = PaystackSettlement.count
+      notifications_before = CreatorNotification.count
+
       expect do
         post_webhook(payload, signature: "test-signature")
-      end.to change(PaystackSettlement, :count).by(0)
-        .and change(CreatorNotification, :count).by(0)
-        .and change(PaymentAlert, :count).by(1)
+      end.to change(PaymentAlert, :count).by(1)
+
+      expect(PaystackSettlement.count).to eq(settlements_before)
+      expect(CreatorNotification.count).to eq(notifications_before)
 
       expect(response).to have_http_status(:ok)
       expect(PaystackSettlement.find_by(paystack_transfer_code: "TRF_webhook_conflict")).to be_nil

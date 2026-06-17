@@ -52,7 +52,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   it "enqueues settlement notifications for webhook events" do
     tribe = create_tribe(username: "notify_record")
 
-    expect(::Paystack::NotifySettlementJob).to receive(:perform_later).with(kind_of(String), "transfer.success")
+    allow(::Paystack::NotifySettlementJob).to receive(:perform_later)
 
     described_class.call(
       payload: {
@@ -64,6 +64,9 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
       },
       event_type: "transfer.success"
     )
+
+    expect(::Paystack::NotifySettlementJob).to have_received(:perform_later)
+      .with(kind_of(String), "transfer.success")
   end
 
   it "links a settlement to a tip via paystack reference" do

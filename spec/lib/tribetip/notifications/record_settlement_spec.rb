@@ -29,7 +29,7 @@ RSpec.describe Tribetip::Notifications::RecordSettlement do
 
     expect do
       described_class.call(settlement, event_type: "transfer.success")
-    end.to change { CreatorNotification.count }.by(1)
+    end.to change(CreatorNotification, :count).by(1)
 
     notification = CreatorNotification.last
     expect(notification.kind).to eq("settlement_paid")
@@ -43,6 +43,6 @@ RSpec.describe Tribetip::Notifications::RecordSettlement do
 
     expect do
       described_class.call(settlement, event_type: "transfer.success")
-    end.not_to change { CreatorNotification.count }
+    end.not_to change(CreatorNotification, :count)
   end
 end
