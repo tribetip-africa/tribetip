@@ -3,6 +3,14 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::ShareLinks do
+  around do |example|
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    example.run
+  ensure
+    Rails.cache = original_cache
+  end
+
   def create_creator(username: "share_creator")
     tribe = Tribe.new(
       email: "#{username}@tribetip.africa",

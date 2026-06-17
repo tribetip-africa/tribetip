@@ -3,6 +3,14 @@
 require "rails_helper"
 
 RSpec.describe "Share profiles", type: :request do
+  around do |example|
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    example.run
+  ensure
+    Rails.cache = original_cache
+  end
+
   def json
     JSON.parse(response.body)
   end
