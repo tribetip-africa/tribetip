@@ -4,6 +4,11 @@
 #
 # Production: set TRIBETIP_SEED_ENABLED=true and TRIBETIP_SEED_PASSWORD=...
 
+if Rails.env.test? && !ActiveModel::Type::Boolean.new.cast(ENV["TRIBETIP_SEED_ENABLED"])
+  puts "Skipping TribeTip seeds in test (set TRIBETIP_SEED_ENABLED=true to seed)."
+  return
+end
+
 include_creators = ActiveModel::Type::Boolean.new.cast(ENV.fetch("TRIBETIP_SEED_CREATORS", "true"))
 
 seeder = Tribetip::Seeds::Accounts.call(
