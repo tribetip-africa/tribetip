@@ -3,19 +3,6 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::ReconcilePlatform do
-  def create_creator(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "auto-repairs stale pending tips and caches a clean report" do
     tribe = create_creator(username: "platform_repair")
     tip = tribe.tips.create!(
