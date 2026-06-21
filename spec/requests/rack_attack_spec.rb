@@ -3,21 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Rack::Attack throttling", type: :request do
-  def create_public_tribe(username:)
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Creator",
-      is_profile_public: true,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
-
   def exhaust_public_profile_limit(username, count: 60)
     count.times { get "/tribes/#{username}" }
   end
