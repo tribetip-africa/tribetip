@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::RepairCreatorPayments do
-  def create_tribe(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "syncs settlements and reconciles pending tips" do
-    tribe = create_tribe(username: "repair_payments")
+    tribe = create_onboarded_tribe(username: "repair_payments")
     tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
