@@ -16,6 +16,15 @@ end
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
+    origins "*"
+
+    resource "/widget/config",
+      headers: :any,
+      methods: %i[get options],
+      max_age: 600
+  end
+
+  allow do
     origins(*allowed_origins)
 
     resource "*",
