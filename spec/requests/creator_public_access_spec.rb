@@ -3,25 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator public access rules", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, role: "creator", **attrs)
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      role: role,
-      account_status: "active",
-      display_name: "Creator Name",
-      **attrs
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
 
   describe "GET /tribes/:username" do
     it "does not expose admin accounts as public profiles" do
