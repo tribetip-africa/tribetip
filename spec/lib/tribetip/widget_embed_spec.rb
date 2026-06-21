@@ -3,29 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::WidgetEmbed do
-  around do |example|
-    original_cache = Rails.cache
-    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
-    example.run
-  ensure
-    Rails.cache = original_cache
-  end
-
-  def create_creator(username: "widget_creator")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Widget Creator",
-      is_profile_public: true,
-      account_status: "active",
-      widget_enabled: true
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
+  include_context "with memory cache"
 
   it "generates a unique opaque token" do
     tribe = create_creator
@@ -39,6 +17,7 @@ RSpec.describe Tribetip::WidgetEmbed do
 
   it "rotates tokens and purges the previous widget cache entry" do
     tribe = create_creator
+    tribe.update!(widget_enabled: true)
     original = described_class.ensure_token!(tribe)
     Tribetip::SecureCache.write(
       described_class.cache_key_for(original),
