@@ -3,18 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Metrics::CreatorSummary do
-  def create_tribe(username:)
-    Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      currency: "KES"
-    ).reload
-  end
-
   it "summarizes paid, pending, and recent tips for a creator" do
-    tribe = create_tribe(username: "metrics_creator")
+    tribe = create_onboarded_tribe(username: "metrics_creator")
     tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
