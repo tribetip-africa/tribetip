@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::RecordSettlement do
-  def create_tribe(username: "record_settlement")
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "records a settlement from a transfer webhook payload" do
-    tribe = create_tribe
+    tribe = create_onboarded_tribe(username: "record_settlement")
 
     result = described_class.call(
       payload: {
@@ -50,7 +37,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "enqueues settlement notifications for webhook events" do
-    tribe = create_tribe(username: "notify_record")
+    tribe = create_onboarded_tribe(username: "notify_record")
 
     allow(::Paystack::NotifySettlementJob).to receive(:perform_later)
 
@@ -70,7 +57,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "links a settlement to a tip via paystack reference" do
-    tribe = create_tribe(username: "linked_settlement")
+    tribe = create_onboarded_tribe(username: "linked_settlement")
     tip = tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
@@ -96,7 +83,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "links a settlement to a tip via metadata tip_id" do
-    tribe = create_tribe(username: "metadata_tip_link")
+    tribe = create_onboarded_tribe(username: "metadata_tip_link")
     tip = tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
@@ -122,8 +109,8 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "skips settlement recording when tribe metadata conflicts" do
-    tribe_a = create_tribe(username: "settlement_a")
-    tribe_b = create_tribe(username: "settlement_b")
+    tribe_a = create_onboarded_tribe(username: "settlement_a")
+    tribe_b = create_onboarded_tribe(username: "settlement_b")
 
     result = described_class.call(
       payload: {
@@ -144,7 +131,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "upserts settlement rows from sync records" do
-    tribe = create_tribe(username: "sync_settlement")
+    tribe = create_onboarded_tribe(username: "sync_settlement")
     record = Tribetip::Paystack::SettlementRecord.new(
       id: "settlement_sync_ref",
       amount_cents: 47_500,
@@ -163,7 +150,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "reuses an existing tip settlement instead of creating a duplicate transfer code" do
-    tribe = create_tribe(username: "dedupe_settlement")
+    tribe = create_onboarded_tribe(username: "dedupe_settlement")
     tip = tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
@@ -200,7 +187,7 @@ RSpec.describe Tribetip::Paystack::RecordSettlement do
   end
 
   it "upgrades a stub settlement to a Paystack transfer code when syncing remote data" do
-    tribe = create_tribe(username: "upgrade_settlement")
+    tribe = create_onboarded_tribe(username: "upgrade_settlement")
     tip = tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
