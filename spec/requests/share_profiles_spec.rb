@@ -3,35 +3,10 @@
 require "rails_helper"
 
 RSpec.describe "Share profiles", type: :request do
-  around do |example|
-    original_cache = Rails.cache
-    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
-    example.run
-  ensure
-    Rails.cache = original_cache
-  end
-
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_public_tribe(username: "share_public")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Share Public",
-      is_profile_public: true,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
+  include_context "with memory cache"
 
   it "returns a public profile for an opaque share token" do
-    tribe = create_public_tribe
+    tribe = create_public_tribe(username: "share_public", display_name: "Share Public")
     token = Tribetip::ShareLinks.ensure_token!(tribe)
 
     get "/share/#{token}"
