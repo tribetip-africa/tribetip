@@ -60,7 +60,8 @@ module SecureHttpCaching
   end
 
   def public_read_request?
-    (request.get? && request.path.match?(%r{\A/tribes/[a-z0-9_]+\z})) ||
-      (request.get? && request.path == "/widget/config")
+    Tribetip::RackAttackPaths.public_profile_path?(request) ||
+      Tribetip::RackAttackPaths.share_profile_path?(request) ||
+      Tribetip::RackAttackPaths.widget_config_path?(request)
   end
 end
