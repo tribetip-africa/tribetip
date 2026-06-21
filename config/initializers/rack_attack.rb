@@ -18,7 +18,7 @@ class Rack::Attack
     limit: ENV.fetch("RACK_ATTACK_PUBLIC_PROFILE_LIMIT", 60).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if req.get? && req.path.match?(%r{\A/tribes/[a-z0-9_]+\z})
+    req.ip if Tribetip::RackAttackPaths.public_profile_path?(req)
   end
 
   throttle(
@@ -26,7 +26,7 @@ class Rack::Attack
     limit: ENV.fetch("RACK_ATTACK_SHARE_PROFILE_LIMIT", 180).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if req.get? && req.path.match?(%r{\A/share/[A-Za-z0-9_-]{20,48}\z})
+    req.ip if Tribetip::RackAttackPaths.share_profile_path?(req)
   end
 
   throttle(
@@ -34,7 +34,7 @@ class Rack::Attack
     limit: ENV.fetch("RACK_ATTACK_WIDGET_CONFIG_LIMIT", 120).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if req.get? && req.path == "/widget/config"
+    req.ip if Tribetip::RackAttackPaths.widget_config_path?(req)
   end
 
   throttle(
