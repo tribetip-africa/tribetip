@@ -3,28 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack onboarding guards", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:)
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      account_status: "active",
-      display_name: "Creator"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
 
   it "blocks dashboard profile access until Paystack onboarding is complete" do
     tribe = create_tribe(username: "guard_pending")
