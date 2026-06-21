@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Tips checkout", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def create_tippable_tribe(username:)
     tribe = Tribe.new(
