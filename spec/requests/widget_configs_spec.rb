@@ -3,29 +3,13 @@
 require "rails_helper"
 
 RSpec.describe "Public widget config", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_creator(username: "widget_public")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Widget Public",
-      is_profile_public: true,
-      account_status: "active",
-      widget_enabled: true
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
 
   it "returns widget configuration for a valid enabled token" do
-    tribe = create_creator
+    tribe = create_creator(
+      username: "widget_public",
+      display_name: "Widget Public",
+      widget_enabled: true
+    )
     token = Tribetip::WidgetEmbed.ensure_token!(tribe)
 
     get "/widget/config?token=#{CGI.escape(token)}", headers: { Accept: "application/json" }
