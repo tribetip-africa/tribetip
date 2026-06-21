@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::BuildSettlementDetail do
-  def create_tribe(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "returns settlement breakdown linked to the originating tip" do
-    tribe = create_tribe(username: "settlement_detail")
+    tribe = create_onboarded_tribe(username: "settlement_detail")
     tip = tribe.tips.create!(
       amount_cents: 100_000,
       currency: "KES",
