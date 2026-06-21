@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::ResolveSettlementTribe do
-  def create_tribe(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "resolves a tribe when tribe_id and subaccount_code agree" do
-    tribe = create_tribe(username: "resolve_match")
+    tribe = create_onboarded_tribe(username: "resolve_match")
 
     result = described_class.call(
       metadata: {
@@ -31,8 +18,8 @@ RSpec.describe Tribetip::Paystack::ResolveSettlementTribe do
   end
 
   it "rejects when tribe_id and subaccount_code point to different tribes" do
-    tribe_a = create_tribe(username: "resolve_a")
-    tribe_b = create_tribe(username: "resolve_b")
+    tribe_a = create_onboarded_tribe(username: "resolve_a")
+    tribe_b = create_onboarded_tribe(username: "resolve_b")
 
     result = nil
     expect do
@@ -51,7 +38,7 @@ RSpec.describe Tribetip::Paystack::ResolveSettlementTribe do
   end
 
   it "rejects when subaccount_code does not match the resolved tribe" do
-    tribe = create_tribe(username: "resolve_subaccount")
+    tribe = create_onboarded_tribe(username: "resolve_subaccount")
 
     result = described_class.call(
       metadata: {
@@ -65,7 +52,7 @@ RSpec.describe Tribetip::Paystack::ResolveSettlementTribe do
   end
 
   it "resolves by subaccount_code when tribe_id is absent" do
-    tribe = create_tribe(username: "resolve_subaccount_only")
+    tribe = create_onboarded_tribe(username: "resolve_subaccount_only")
 
     result = described_class.call(
       metadata: {

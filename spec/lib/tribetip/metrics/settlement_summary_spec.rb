@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Metrics::SettlementSummary do
-  def create_tribe(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "summarizes successful and failed settlement rows" do
-    tribe = create_tribe(username: "settlement_summary")
+    tribe = create_onboarded_tribe(username: "settlement_summary")
 
     tribe.paystack_settlements.create!(
       paystack_transfer_code: "TRF_success_1",

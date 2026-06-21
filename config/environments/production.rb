@@ -27,6 +27,9 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
+  # Avoid leaking server timing via X-Runtime (Thruster/Kamal proxy serves clients).
+  config.middleware.delete Rack::Runtime
+
   # Skip http-to-https redirect for liveness checks handled by load balancers.
   config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 

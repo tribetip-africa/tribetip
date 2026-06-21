@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin Paystack repair", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def create_admin(username: "platform_admin")
     Tribe.create!(
@@ -17,24 +14,6 @@ RSpec.describe "Admin Paystack repair", type: :request do
       country_code: "KE",
       currency: "KES"
     )
-  end
-
-  def create_creator(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
   end
 
   it "repairs Paystack data for a creator account" do

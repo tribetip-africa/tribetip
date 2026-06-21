@@ -21,7 +21,7 @@ module SecureHttpCaching
     },
     public_short: {
       "Cache-Control" => "public, max-age=60, stale-while-revalidate=30",
-      "Vary" => "Accept"
+      "Vary" => "Accept, Authorization"
     }
   }.freeze
 
@@ -60,6 +60,8 @@ module SecureHttpCaching
   end
 
   def public_read_request?
-    request.get? && request.path.match?(%r{\A/tribes/[a-z0-9_]+\z})
+    Tribetip::RackAttackPaths.public_profile_path?(request) ||
+      Tribetip::RackAttackPaths.share_profile_path?(request) ||
+      Tribetip::RackAttackPaths.widget_config_path?(request)
   end
 end

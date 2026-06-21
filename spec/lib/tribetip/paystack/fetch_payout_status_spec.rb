@@ -3,19 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
-  def create_tribe(username:, country_code: "KE", account_status: "active")
-    Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: country_code,
-      account_status: account_status
-    ).reload
-  end
-
   it "reports verified stub payout status when subaccount is linked" do
-    tribe = create_tribe(username: "payout_stub")
+    tribe = create_onboarded_tribe(username: "payout_stub")
     complete_stub_paystack_onboarding!(tribe)
 
     status = described_class.call(tribe.reload)
@@ -27,7 +16,7 @@ RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
   end
 
   it "blocks publishing when Paystack has not verified the subaccount" do
-    tribe = create_tribe(username: "payout_unverified")
+    tribe = create_onboarded_tribe(username: "payout_unverified")
     complete_stub_paystack_onboarding!(tribe)
 
     client = instance_double(Tribetip::Paystack::Client)
@@ -59,8 +48,8 @@ RSpec.describe Tribetip::Paystack::FetchPayoutStatus do
   end
 
   it "reports earnings from the creator's own tips, not merchant-wide Paystack totals" do
-    tribe = create_tribe(username: "payout_owner")
-    other = create_tribe(username: "payout_other")
+    tribe = create_onboarded_tribe(username: "payout_owner")
+    other = create_onboarded_tribe(username: "payout_other")
     complete_stub_paystack_onboarding!(tribe)
     complete_stub_paystack_onboarding!(other)
 

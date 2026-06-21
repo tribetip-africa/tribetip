@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::ListSettlements do
-  def create_tribe(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "returns stub settlements from paid tips" do
-    tribe = create_tribe(username: "settlements_creator")
+    tribe = create_onboarded_tribe(username: "settlements_creator")
     tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",
@@ -34,7 +21,7 @@ RSpec.describe Tribetip::Paystack::ListSettlements do
   end
 
   it "does not create duplicate stub settlements when refreshed repeatedly" do
-    tribe = create_tribe(username: "settlements_refresh")
+    tribe = create_onboarded_tribe(username: "settlements_refresh")
     tribe.tips.create!(
       amount_cents: 50_000,
       currency: "KES",

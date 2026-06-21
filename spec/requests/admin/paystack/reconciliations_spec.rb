@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin Paystack reconciliation", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def create_admin
     Tribe.create!(

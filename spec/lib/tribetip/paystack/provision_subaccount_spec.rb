@@ -3,26 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::ProvisionSubaccount do
-  def create_tribe(username:, country_code: "NG")
-    market = Tribetip::Paystack::Market.find(country_code)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: country_code,
-      currency: market.currency
-    )
-    tribe.update_columns(
-      paystack_customer_code: "cus_existing_#{username}",
-      paystack_subaccount_code: nil,
-      onboarding_completed_at: nil
-    )
-    tribe.reload
-  end
-
   it "creates a stub subaccount when bank details are provided" do
-    tribe = create_tribe(username: "subaccount_user")
+    tribe = create_tribe(account_status: "active", username: "subaccount_user")
 
     result = described_class.call(
       tribe,
@@ -37,7 +19,7 @@ RSpec.describe Tribetip::Paystack::ProvisionSubaccount do
   end
 
   it "uses Kenya market stub defaults in development mode" do
-    tribe = create_tribe(username: "subaccount_ke", country_code: "KE")
+    tribe = create_tribe(account_status: "active", username: "subaccount_ke", country_code: "KE")
 
     result = described_class.call(tribe, settlement_bank: nil, account_number: nil)
 
@@ -46,7 +28,7 @@ RSpec.describe Tribetip::Paystack::ProvisionSubaccount do
   end
 
   it "returns an error when bank details are missing in production mode" do
-    tribe = create_tribe(username: "subaccount_prod")
+    tribe = create_tribe(account_status: "active", username: "subaccount_prod")
     client = instance_double(Tribetip::Paystack::Client, stub_mode?: false)
     allow(Tribetip::Paystack::Client).to receive(:new).and_return(client)
 
@@ -57,7 +39,7 @@ RSpec.describe Tribetip::Paystack::ProvisionSubaccount do
   end
 
   it "returns the existing subaccount code without creating a duplicate" do
-    tribe = create_tribe(username: "subaccount_existing")
+    tribe = create_tribe(account_status: "active", username: "subaccount_existing")
     tribe.update!(paystack_subaccount_code: "acct_existing_code")
 
     result = described_class.call(

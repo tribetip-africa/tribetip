@@ -125,7 +125,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 ### Run CI locally with act
 
 ```bash
-act push -W .github/workflows/ci.yml --container-architecture linux/amd64 --concurrent-jobs 1
+act push -W .github/workflows/ci.yml --container-architecture linux/amd64 --concurrent-jobs 1 --env-file .github/act.env
 ```
 
 Use `--concurrent-jobs 1` so Postgres service containers do not fight for port 5432. On Apple Silicon, `--container-architecture linux/amd64` matches GitHub-hosted runners.

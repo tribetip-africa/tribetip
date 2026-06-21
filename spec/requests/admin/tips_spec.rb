@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin tip investigation", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def create_admin
     Tribe.create!(

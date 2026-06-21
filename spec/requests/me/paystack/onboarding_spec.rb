@@ -3,30 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack onboarding", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, country_code: "NG")
-    market = Tribetip::Paystack::Market.find(country_code)
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: country_code,
-      currency: market.currency,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
 
   def post_onboarding(tribe, **params)
     post "/me/paystack/onboarding",
@@ -37,7 +13,7 @@ RSpec.describe "Paystack onboarding", type: :request do
 
   describe "GET /me/paystack/onboarding" do
     it "returns onboarding status for the authenticated tribe" do
-      tribe = create_tribe(username: "onboard_creator")
+      tribe = create_tribe(username: "onboard_creator", country_code: "NG", account_status: "active")
 
       get "/me/paystack/onboarding", headers: bearer_token_for(tribe), as: :json
 

@@ -249,9 +249,9 @@ module Tribetip
       end
 
       def sync_onboarding_state!(customer_ready, subaccount_ready)
-        if customer_ready && subaccount_ready
+        if @tribe.paystack_payout_linked?
           @tribe.mark_paystack_onboarding_complete!
-        elsif @tribe.onboarding_completed_at.present?
+        elsif @tribe.onboarding_completed_at.present? && !@tribe.paystack_subaccount_ready?
           @tribe.update!(onboarding_completed_at: nil)
         end
       end

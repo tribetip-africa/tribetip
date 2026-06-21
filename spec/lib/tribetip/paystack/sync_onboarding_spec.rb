@@ -3,17 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::SyncOnboarding do
-  def create_tribe(username:)
-    Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username
-    )
-  end
-
   it "marks onboarding complete when both Paystack resources verify" do
-    tribe = create_tribe(username: "sync_complete")
+    tribe = create_tribe(account_status: "active", username: "sync_complete")
     complete_stub_paystack_onboarding!(tribe)
 
     status = described_class.call(tribe)
@@ -23,7 +14,7 @@ RSpec.describe Tribetip::Paystack::SyncOnboarding do
   end
 
   it "does not provision customers synchronously" do
-    tribe = create_tribe(username: "sync_provision")
+    tribe = create_tribe(account_status: "active", username: "sync_provision")
     tribe.update_columns(
       paystack_customer_code: nil,
       paystack_subaccount_code: nil,
@@ -37,7 +28,7 @@ RSpec.describe Tribetip::Paystack::SyncOnboarding do
   end
 
   it "keeps onboarding incomplete until subaccount is linked" do
-    tribe = create_tribe(username: "sync_incomplete")
+    tribe = create_tribe(account_status: "active", username: "sync_incomplete")
     tribe.update_columns(
       paystack_subaccount_code: nil,
       onboarding_completed_at: Time.current
@@ -52,7 +43,7 @@ RSpec.describe Tribetip::Paystack::SyncOnboarding do
   end
 
   it "includes verification checks in API responses" do
-    tribe = create_tribe(username: "sync_verification")
+    tribe = create_tribe(account_status: "active", username: "sync_verification")
     complete_stub_paystack_onboarding!(tribe)
 
     status = described_class.call(tribe)

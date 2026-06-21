@@ -3,27 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack settlements", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_creator(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
 
   it "returns settlement history for onboarded creators" do
     tribe = create_creator(username: "settlement_history")

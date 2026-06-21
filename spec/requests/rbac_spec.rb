@@ -3,29 +3,11 @@
 require "rails_helper"
 
 RSpec.describe "RBAC foundation", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
   def auth_header_from(response)
     authorization = response.headers["Authorization"]
     return {} if authorization.blank?
 
     { "Authorization" => authorization }
-  end
-
-  def create_tribe(username:, email: nil, role: "creator", account_status: "pending")
-    tribe = Tribe.new(
-      email: email || "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      role: role,
-      account_status: account_status
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
   end
 
   def sign_in_tribe(login:, password: "securepass123")

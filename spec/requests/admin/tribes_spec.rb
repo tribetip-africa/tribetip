@@ -3,28 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin tribes", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, role: "creator", account_status: "active")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      role: role,
-      account_status: account_status
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
 
   let(:admin) { create_tribe(username: "platform_admin", role: "admin") }
   let(:creator) { create_tribe(username: "regular_creator") }

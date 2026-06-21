@@ -12,10 +12,6 @@ RSpec.describe "Regions", type: :request do
     Tribetip::Regions.reset!
   end
 
-  def json
-    JSON.parse(response.body)
-  end
-
   it "returns launch flags for each market" do
     get "/regions"
 

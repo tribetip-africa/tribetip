@@ -3,18 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::AuditOnboarding do
-  def create_tribe(username:, country_code: "NG")
-    Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: country_code
-    ).reload
-  end
-
   it "reports a healthy audit when Paystack resources verify" do
-    tribe = create_tribe(username: "audit_complete")
+    tribe = create_tribe(account_status: "active", username: "audit_complete")
     complete_stub_paystack_onboarding!(tribe)
 
     report = described_class.call(tribe)
@@ -35,7 +25,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "reports unhealthy audits when Paystack codes are missing" do
-    tribe = create_tribe(username: "audit_missing")
+    tribe = create_tribe(account_status: "active", username: "audit_missing")
     tribe.update_columns(
       paystack_customer_code: nil,
       paystack_subaccount_code: nil,
@@ -51,7 +41,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "skips subaccount checks for unsupported markets" do
-    tribe = create_tribe(username: "audit_ci", country_code: "CI")
+    tribe = create_tribe(account_status: "active", username: "audit_ci", country_code: "CI")
 
     report = described_class.call(tribe)
 
@@ -62,7 +52,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "reports healthy unsupported markets without Paystack customer codes" do
-    tribe = create_tribe(username: "audit_ci_live", country_code: "CI")
+    tribe = create_tribe(account_status: "active", username: "audit_ci_live", country_code: "CI")
     tribe.update_columns(paystack_customer_code: nil, paystack_subaccount_code: nil)
 
     report = described_class.call(tribe.reload)
@@ -73,7 +63,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "reconciles onboarding completion when sync is enabled" do
-    tribe = create_tribe(username: "audit_sync")
+    tribe = create_tribe(account_status: "active", username: "audit_sync")
     complete_stub_paystack_onboarding!(tribe)
     tribe.update_columns(onboarding_completed_at: nil)
 
@@ -84,7 +74,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "caches Paystack verification responses for repeated audits" do
-    tribe = create_tribe(username: "audit_cache")
+    tribe = create_tribe(account_status: "active", username: "audit_cache")
     complete_stub_paystack_onboarding!(tribe)
 
     client = instance_double(Tribetip::Paystack::Client)
@@ -110,7 +100,7 @@ RSpec.describe Tribetip::Paystack::AuditOnboarding do
   end
 
   it "serializes audit reports for API responses" do
-    tribe = create_tribe(username: "audit_json")
+    tribe = create_tribe(account_status: "active", username: "audit_json")
     complete_stub_paystack_onboarding!(tribe)
 
     report = described_class.call(tribe)
