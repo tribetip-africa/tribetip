@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Errors::Handler, type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def post_invalid_sign_up
     post "/tribes.json", params: {
@@ -67,24 +64,9 @@ RSpec.describe Tribetip::Errors::Handler, type: :request do
   end
 
   describe "rate limit errors" do
-    def create_public_tribe(username:)
-      tribe = Tribe.new(
-        email: "#{username}@tribetip.africa",
-        password: "securepass123",
-        password_confirmation: "securepass123",
-        username: username,
-        display_name: "Creator",
-        is_profile_public: true,
-        account_status: "active"
-      )
-      tribe.skip_confirmation!
-      tribe.save!
-      tribe
-    end
-
     it "returns structured rate limit errors" do
       Rack::Attack.reset!
-      create_public_tribe(username: "error_rate_limit")
+      create_public_tribe(username: "error_rate_limit", display_name: "Creator")
 
       60.times { get "/tribes/error_rate_limit" }
 
