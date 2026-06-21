@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack withdrawals", type: :request do
-
   before do
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:fetch).and_call_original

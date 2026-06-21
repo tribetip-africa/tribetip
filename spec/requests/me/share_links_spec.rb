@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator share links", type: :request do
-
   it "returns an opaque share link for the signed-in creator" do
     tribe = create_creator
 

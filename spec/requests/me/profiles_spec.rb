@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Me profile", type: :request do
-
   describe "GET /me/profile" do
     it "requires authentication" do
       get "/me/profile", as: :json

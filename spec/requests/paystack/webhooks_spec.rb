@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack webhooks", type: :request do
-
   def create_tip(reference:)
     tribe = Tribe.new(
       email: "webhook@tribetip.africa",

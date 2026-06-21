@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator widget embeds", type: :request do
-
   it "returns widget embed settings for the signed-in creator" do
     tribe = create_creator
 

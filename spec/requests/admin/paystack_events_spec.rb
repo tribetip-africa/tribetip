@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin Paystack events", type: :request do
-
   def create_admin
     Tribe.create!(
       email: "admin_events@tribetip.africa",

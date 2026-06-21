@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin Paystack audits", type: :request do
-
   def token_for(username)
     post "/tribes/sign_in.json", params: {
       tribe: { login: username, password: "securepass123" }

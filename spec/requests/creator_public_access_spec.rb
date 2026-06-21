@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator public access rules", type: :request do
-
   describe "GET /tribes/:username" do
     it "does not expose admin accounts as public profiles" do
       admin = create_tribe(username: "admin_public", role: "admin")

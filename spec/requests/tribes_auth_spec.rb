@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "Tribes JWT authentication", type: :request do
-
   def auth_header_from(response)
     authorization = response.headers["Authorization"]
     return {} if authorization.blank?

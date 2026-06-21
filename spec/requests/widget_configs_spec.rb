@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Public widget config", type: :request do
-
   it "returns widget configuration for a valid enabled token" do
     tribe = create_creator(
       username: "widget_public",

@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin tribes", type: :request do
-
   let(:admin) { create_tribe(username: "platform_admin", role: "admin") }
   let(:creator) { create_tribe(username: "regular_creator") }
   let(:target) { create_tribe(username: "target_creator") }

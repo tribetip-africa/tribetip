@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Errors::Handler, type: :request do
-
   def post_invalid_sign_up
     post "/tribes.json", params: {
       tribe: {
