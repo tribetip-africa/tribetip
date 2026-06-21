@@ -52,6 +52,10 @@ class Tribe < ApplicationRecord
   validates :account_status, inclusion: { in: VALID_ACCOUNT_STATUSES }
   validates :role, inclusion: { in: VALID_ROLES }
   validates :tip_share_token, uniqueness: { case_sensitive: true }, allow_nil: true
+  validates :widget_embed_token, uniqueness: { case_sensitive: true }, allow_nil: true
+  validates :widget_position, inclusion: { in: Tribetip::WidgetEmbed::POSITIONS }
+  validates :widget_accent_color, format: { with: /\A#(?:[0-9a-fA-F]{3}){1,2}\z/ }
+  validate :widget_destination_url_must_be_http_url, if: -> { widget_destination_url.present? }
   validate :email_acceptable_for_paystack, on: :create
   validate :admin_cannot_have_public_profile
 
@@ -79,6 +83,10 @@ class Tribe < ApplicationRecord
 
   def paystack_subaccount_ready?
     paystack_subaccount_code.present?
+  end
+
+  def paystack_payout_linked?
+    paystack_customer_ready? && paystack_subaccount_ready?
   end
 
   def paystack_onboarding_complete?
@@ -161,6 +169,7 @@ class Tribe < ApplicationRecord
 
     Tribetip::SecureCache.delete(Tribetip::SecureCache.public_profile_key(username))
     Tribetip::ShareLinks.purge_share_cache!(tip_share_token) if tip_share_token.present?
+    Tribetip::WidgetEmbed.purge_config_cache!(widget_embed_token) if widget_embed_token.present?
     Tribetip::SecureCache.bump_version!(:public) if saved_change_to_username?
   end
 
@@ -168,6 +177,15 @@ class Tribe < ApplicationRecord
     return unless payout_cache_relevant_change?
 
     Tribetip::Paystack::FetchPayoutStatus.invalidate_cache(self)
+  end
+
+  def widget_destination_url_must_be_http_url
+    uri = URI.parse(widget_destination_url.to_s)
+    return if uri.is_a?(URI::HTTP) && uri.host.present?
+
+    errors.add(:widget_destination_url, "must be a valid http or https URL")
+  rescue URI::InvalidURIError
+    errors.add(:widget_destination_url, "must be a valid http or https URL")
   end
 
   def payout_cache_relevant_change?
