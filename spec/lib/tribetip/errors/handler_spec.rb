@@ -53,6 +53,19 @@ RSpec.describe Tribetip::Errors::Handler, type: :request do
     end
   end
 
+  describe "malformed JSON" do
+    it "returns validation errors for unparseable JSON bodies" do
+      post "/tribes/sign_in.json",
+        params: "{bad json",
+        headers: { "CONTENT_TYPE" => "application/json" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect_structured_error(code: "validation_failed")
+      expect(json.dig("error", "message")).to eq("Request body must be valid JSON.")
+      expect(json["errors"]).to include("Malformed JSON payload.")
+    end
+  end
+
   describe "rate limit errors" do
     def create_public_tribe(username:)
       tribe = Tribe.new(
