@@ -67,10 +67,12 @@ module Tribetip
         destination_url = destination_url_for(tribe)
         return if destination_url.blank?
 
+        display_name = tribe.display_name.presence || tribe.username
+
         {
-          app_name: tribe.display_name.presence || tribe.username,
+          app_name: display_name,
           username: tribe.username,
-          display_name: tribe.display_name.presence || tribe.username,
+          display_name: display_name,
           bio: tribe.bio,
           country_label: country_label_for(tribe),
           currency: tribe.currency,
@@ -100,18 +102,8 @@ module Tribetip
       end
 
       def payment_hint_for(tribe)
-        case tribe.country_code.to_s.upcase
-        when "KE"
-          "No account needed · Pay with M-Pesa or card"
-        when "NG"
-          "No account needed · Pay with card or bank transfer"
-        when "GH"
-          "No account needed · Pay with mobile money or card"
-        when "ZA"
-          "No account needed · Pay with card or EFT"
-        else
-          "No account needed · Pay securely online"
-        end
+        meta = Regions::METADATA[tribe.country_code.to_s.upcase]
+        meta&.fetch(:payment_hint, nil) || "No account needed · Pay securely online"
       end
 
       def destination_url_for(tribe)
