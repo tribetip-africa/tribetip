@@ -1,13 +1,13 @@
+require Rails.root.join("lib/tribetip/rack_attack_paths")
+
 class Rack::Attack
   # Mitigate brute force against authentication endpoints.
   throttle("auth/ip", limit: 10, period: 60.seconds) do |req|
-    if req.post? && req.path.in?([ "/tribes/sign_in", "/tribes/password", "/tribes" ])
-      req.ip
-    end
+    req.ip if Tribetip::RackAttackPaths.auth_path?(req)
   end
 
   throttle("auth/email", limit: 5, period: 60.seconds) do |req|
-    if req.post? && req.path.in?([ "/tribes/sign_in", "/tribes/password" ])
+    if Tribetip::RackAttackPaths.sign_in_path?(req) || Tribetip::RackAttackPaths.password_path?(req)
       req.params["tribe"]&.[]("email")&.to_s&.downcase&.strip
     end
   end
@@ -23,10 +23,18 @@ class Rack::Attack
 
   throttle(
     "share_profiles/ip",
-    limit: ENV.fetch("RACK_ATTACK_SHARE_PROFILE_LIMIT", 60).to_i,
+    limit: ENV.fetch("RACK_ATTACK_SHARE_PROFILE_LIMIT", 180).to_i,
     period: 60.seconds
   ) do |req|
     req.ip if req.get? && req.path.match?(%r{\A/share/[A-Za-z0-9_-]{20,48}\z})
+  end
+
+  throttle(
+    "widget_config/ip",
+    limit: ENV.fetch("RACK_ATTACK_WIDGET_CONFIG_LIMIT", 120).to_i,
+    period: 60.seconds
+  ) do |req|
+    req.ip if req.get? && req.path == "/widget/config"
   end
 
   throttle(
