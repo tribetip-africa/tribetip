@@ -3,11 +3,36 @@
 module Tribetip
   module Regions
     METADATA = {
-      "NG" => { name: "Nigeria", currency: "NGN", flag: "🇳🇬" },
-      "GH" => { name: "Ghana", currency: "GHS", flag: "🇬🇭" },
-      "KE" => { name: "Kenya", currency: "KES", flag: "🇰🇪" },
-      "ZA" => { name: "South Africa", currency: "ZAR", flag: "🇿🇦" },
-      "CI" => { name: "Côte d'Ivoire", currency: "XOF", flag: "🇨🇮" }
+      "NG" => {
+        name: "Nigeria",
+        currency: "NGN",
+        flag: "🇳🇬",
+        payment_hint: "No account needed · Pay with card or bank transfer"
+      },
+      "GH" => {
+        name: "Ghana",
+        currency: "GHS",
+        flag: "🇬🇭",
+        payment_hint: "No account needed · Pay with mobile money or card"
+      },
+      "KE" => {
+        name: "Kenya",
+        currency: "KES",
+        flag: "🇰🇪",
+        payment_hint: "No account needed · Pay with M-Pesa or card"
+      },
+      "ZA" => {
+        name: "South Africa",
+        currency: "ZAR",
+        flag: "🇿🇦",
+        payment_hint: "No account needed · Pay with card or EFT"
+      },
+      "CI" => {
+        name: "Côte d'Ivoire",
+        currency: "XOF",
+        flag: "🇨🇮",
+        payment_hint: "No account needed · Pay securely online"
+      }
     }.freeze
 
     class << self
