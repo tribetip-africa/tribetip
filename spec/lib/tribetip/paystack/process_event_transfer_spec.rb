@@ -3,21 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Tribetip::Paystack::ProcessEvent do
-  def create_tribe(username: "transfer_event")
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
-
   it "records settlements for transfer.success webhooks" do
-    tribe = create_tribe
+    tribe = create_onboarded_tribe(username: "process_event")
     event = {
       "event" => "transfer.success",
       "data" => {
