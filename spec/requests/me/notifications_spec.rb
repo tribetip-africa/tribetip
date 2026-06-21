@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator notifications", type: :request do
-
   it "lists unread notifications for creators" do
     tribe = create_creator(username: "notifications_creator")
     tribe.creator_notifications.create!(

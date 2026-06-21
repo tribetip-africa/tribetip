@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack onboarding", type: :request do
-
   def post_onboarding(tribe, **params)
     post "/me/paystack/onboarding",
          params: { onboarding: params },

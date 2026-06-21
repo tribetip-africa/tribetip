@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack repair", type: :request do
-
   it "syncs Paystack data for the authenticated creator" do
     tribe = create_creator(username: "repair_route")
     tribe.tips.create!(

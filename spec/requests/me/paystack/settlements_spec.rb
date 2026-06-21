@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack settlements", type: :request do
-
   it "returns settlement history for onboarded creators" do
     tribe = create_creator(username: "settlement_history")
     tribe.tips.create!(

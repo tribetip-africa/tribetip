@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack onboarding guards", type: :request do
-
   it "blocks dashboard profile access until Paystack onboarding is complete" do
     tribe = create_tribe(username: "guard_pending")
     tribe.update_columns(

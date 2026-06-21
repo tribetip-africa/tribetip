@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Me tips", type: :request do
-
   def create_tip_for(tribe, reference: "tip_test_ref")
     tribe.tips.create!(
       amount_cents: 50_000,

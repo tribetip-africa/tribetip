@@ -3,7 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator tip reconcile", type: :request do
-
   it "reconciles a pending tip for the authenticated creator" do
     tribe = create_creator(username: "creator_tip_reconcile")
     tip = tribe.tips.create!(
