@@ -20,10 +20,6 @@ module PublicProfileRenderable
     render json: { profile: payload }
   end
 
-  def render_share_public_profile(tribe)
-    render_public_profile(tribe)
-  end
-
   def public_profile_cache_key(tribe)
     if tribe.tip_share_token.present? && params[:token].present?
       Tribetip::ShareLinks.cache_key_for(params[:token])
