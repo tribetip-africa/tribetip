@@ -3,37 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Me profile", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, account_status: "pending", display_name: nil)
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      account_status: account_status,
-      display_name: display_name
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
-
-  def clear_paystack_onboarding!(tribe)
-    tribe.update_columns(
-      paystack_customer_code: nil,
-      paystack_subaccount_code: nil,
-      onboarding_completed_at: nil
-    )
-    tribe.reload
-  end
 
   describe "GET /me/profile" do
     it "requires authentication" do
