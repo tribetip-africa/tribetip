@@ -8,6 +8,10 @@ module Tribetip
       "/tribes"
     ].freeze
 
+    PUBLIC_PROFILE_PATTERN = %r{\A/tribes/[a-z0-9_]+\z}
+    SHARE_PROFILE_PATTERN = %r{\A/share/[A-Za-z0-9_-]{20,48}\z}
+    WIDGET_CONFIG_PATH = "/widget/config"
+
     module_function
 
     def normalize(path)
@@ -24,6 +28,18 @@ module Tribetip
 
     def password_path?(request)
       request.post? && normalize(request.path) == "/tribes/password"
+    end
+
+    def public_profile_path?(request)
+      request.get? && request.path.match?(PUBLIC_PROFILE_PATTERN)
+    end
+
+    def share_profile_path?(request)
+      request.get? && request.path.match?(SHARE_PROFILE_PATTERN)
+    end
+
+    def widget_config_path?(request)
+      request.get? && request.path == WIDGET_CONFIG_PATH
     end
   end
 end
