@@ -16,11 +16,6 @@ RSpec.describe "Paystack onboarding for admins", type: :request do
     tribe
   end
 
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
-
   it "rejects Paystack onboarding requests for admin accounts" do
     admin = create_admin
 
