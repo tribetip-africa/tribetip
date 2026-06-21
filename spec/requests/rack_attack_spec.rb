@@ -69,4 +69,23 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     body = JSON.parse(response.body)
     expect(body.dig("error", "code")).to eq("rate_limited")
   end
+
+  it "rate limits repeated sign-in attempts on .json routes" do
+    Rack::Attack.reset!
+
+    10.times do
+      post "/tribes/sign_in.json",
+        params: { tribe: { login: "nobody@tribetip.africa", password: "wrong" } },
+        as: :json
+    end
+
+    post "/tribes/sign_in.json",
+      params: { tribe: { login: "nobody@tribetip.africa", password: "wrong" } },
+      as: :json
+
+    expect(response).to have_http_status(429)
+    body = JSON.parse(response.body)
+    expect(body.dig("error", "code")).to eq("rate_limited")
+    expect(body.dig("error", "message")).to match(/too many requests/i)
+  end
 end
