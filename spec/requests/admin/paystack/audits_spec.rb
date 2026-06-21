@@ -3,23 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Admin Paystack audits", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, role: "creator")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      role: role,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
 
   def token_for(username)
     post "/tribes/sign_in.json", params: {
