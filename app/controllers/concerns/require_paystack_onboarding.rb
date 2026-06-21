@@ -13,6 +13,7 @@ module RequirePaystackOnboarding
     return unless current_tribe
     return if current_tribe.admin?
     return if current_tribe.paystack_onboarding_complete?
+    return if current_tribe.paystack_payout_linked?
 
     render_error(Tribetip::Errors::OnboardingRequired.new)
   end
