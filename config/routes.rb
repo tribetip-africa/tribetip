@@ -18,12 +18,18 @@ Rails.application.routes.draw do
                       constraints: { token: /[A-Za-z0-9_-]{20,48}/ },
                       as: :share_profile
 
+  get "widget/config", to: "widget_configs#show"
+
   namespace :me do
     resource :profile, only: %i[show update], controller: "profiles" do
       post :publish
     end
 
     resource :share_link, only: %i[show], controller: "share_links" do
+      post :rotate
+    end
+
+    resource :widget_embed, only: %i[show update], controller: "widget_embeds" do
       post :rotate
     end
 
