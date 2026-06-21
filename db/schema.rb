@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_16_123000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_16_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -202,6 +202,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_123000) do
     t.string "paystack_subaccount_code"
     t.string "paystack_provisioning_error"
     t.string "tip_share_token"
+    t.string "widget_embed_token"
+    t.boolean "widget_enabled", default: false, null: false
+    t.string "widget_destination_url"
+    t.string "widget_icon_url"
+    t.string "widget_accent_color", default: "#247a45", null: false
+    t.string "widget_position", default: "bottom-right", null: false
+    t.string "widget_cta_text", default: "Tip me", null: false
+    t.boolean "widget_open_same_tab", default: false, null: false
     t.index ["account_status"], name: "index_tribes_on_account_status"
     t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_tribes_on_confirmed_at", where: "(confirmed_at IS NOT NULL)"
@@ -215,6 +223,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_123000) do
     t.index ["tip_share_token"], name: "index_tribes_on_tip_share_token", unique: true, where: "(tip_share_token IS NOT NULL)"
     t.index ["unlock_token"], name: "index_tribes_on_unlock_token", unique: true
     t.index ["username"], name: "index_tribes_on_username", unique: true, where: "(username IS NOT NULL)"
+    t.index ["widget_embed_token"], name: "index_tribes_on_widget_embed_token", unique: true, where: "(widget_embed_token IS NOT NULL)"
   end
 
   create_table "versions", force: :cascade do |t|
