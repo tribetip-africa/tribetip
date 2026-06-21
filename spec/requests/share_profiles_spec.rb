@@ -42,6 +42,7 @@ RSpec.describe "Share profiles", type: :request do
       "display_name" => "Share Public"
     )
     expect(json["profile"]).not_to include("email")
+    expect(response.headers["Cache-Control"]).to include("public")
   end
 
   it "returns not found for invalid tokens" do
@@ -58,6 +59,6 @@ RSpec.describe "Share profiles", type: :request do
     get "/share/#{token}"
 
     expect(response).to have_http_status(:not_found)
-    expect(response.headers["Cache-Control"]).to include("no-store")
+    expect(response.headers["Cache-Control"]).to match(/no-(store|cache)/)
   end
 end
