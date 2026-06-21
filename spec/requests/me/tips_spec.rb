@@ -3,28 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Me tips", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_tribe(username:, role: "creator")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    complete_stub_paystack_onboarding!(tribe)
-    tribe
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
 
   def create_tip_for(tribe, reference: "tip_test_ref")
     tribe.tips.create!(
@@ -39,7 +17,7 @@ RSpec.describe "Me tips", type: :request do
 
   describe "GET /me/tips" do
     it "returns tips for the authenticated creator" do
-      creator = create_tribe(username: "tips_creator")
+      creator = create_creator(username: "tips_creator")
       create_tip_for(creator, reference: "tip_creator_ref")
 
       get "/me/tips", headers: bearer_token_for(creator), as: :json
@@ -49,8 +27,8 @@ RSpec.describe "Me tips", type: :request do
     end
 
     it "forbids listing another creator's tips" do
-      owner = create_tribe(username: "tip_owner")
-      other = create_tribe(username: "tip_other")
+      owner = create_tribe(username: "tip_owner", account_status: "active")
+      other = create_tribe(username: "tip_other", account_status: "active")
       tip = create_tip_for(owner, reference: "tip_owner_ref")
 
       get "/me/tips/#{tip.id}", headers: bearer_token_for(other), as: :json
@@ -59,7 +37,7 @@ RSpec.describe "Me tips", type: :request do
     end
 
     it "requires Paystack onboarding before listing tips" do
-      creator = create_tribe(username: "tips_unready")
+      creator = create_tribe(username: "tips_unready", account_status: "active")
       creator.update_columns(
         paystack_customer_code: nil,
         paystack_subaccount_code: nil,
