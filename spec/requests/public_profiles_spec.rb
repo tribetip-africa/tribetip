@@ -3,32 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Public profiles", type: :request do
-  around do |example|
-    original_cache = Rails.cache
-    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
-    example.run
-  ensure
-    Rails.cache = original_cache
-  end
-
-  def json
-    JSON.parse(response.body)
-  end
-
-  def create_public_tribe(username: "public_creator")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Public Creator",
-      is_profile_public: true,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    tribe
-  end
+  include_context "with memory cache"
 
   describe "GET /tribes/:username" do
     it "returns a cacheable public profile without sensitive fields" do
