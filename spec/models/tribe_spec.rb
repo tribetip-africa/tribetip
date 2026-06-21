@@ -126,31 +126,10 @@ RSpec.describe Tribe, type: :model do
   end
 
   describe "cache invalidation" do
-    around do |example|
-      original_cache = Rails.cache
-      Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
-      example.run
-    ensure
-      Rails.cache = original_cache
-    end
-
-    def create_tribe(username:)
-      record = described_class.new(
-        email: "#{username}@tribetip.africa",
-        password: "securepass123",
-        password_confirmation: "securepass123",
-        username: username,
-        display_name: "Creator",
-        is_profile_public: true,
-        account_status: "active"
-      )
-      record.skip_confirmation!
-      record.save!
-      record
-    end
+    include_context "with memory cache"
 
     it "purges the public profile cache after update" do
-      tribe = create_tribe(username: "cache_purge")
+      tribe = create_public_tribe(username: "cache_purge", display_name: "Creator")
       cache_key = Tribetip::SecureCache.public_profile_key(tribe.username)
 
       Tribetip::SecureCache.fetch(cache_key, scope: :public) { { display_name: "Creator" } }
