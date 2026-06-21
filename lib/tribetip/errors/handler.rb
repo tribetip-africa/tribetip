@@ -13,6 +13,7 @@ module Tribetip
         rescue_from Tribetip::Errors::Base, with: :render_tribetip_error
         rescue_from ActiveRecord::RecordNotFound, with: :render_record_not_found
         rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
+        rescue_from ActionDispatch::Http::Parameters::ParseError, with: :render_malformed_json
         rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
         rescue_from ActionController::BadRequest, with: :render_bad_request
       end
@@ -50,6 +51,14 @@ module Tribetip
 
       def render_bad_request(exception)
         error = Tribetip::Errors::BadRequest.new(exception.message)
+        render_tribetip_error(error)
+      end
+
+      def render_malformed_json(_exception)
+        error = Tribetip::Errors::Validation.new(
+          "Request body must be valid JSON.",
+          details: { errors: [ "Malformed JSON payload." ] }
+        )
         render_tribetip_error(error)
       end
 
