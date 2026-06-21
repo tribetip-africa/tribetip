@@ -3,9 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Paystack webhooks", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
 
   def create_tip(reference:)
     tribe = Tribe.new(
@@ -83,19 +80,6 @@ RSpec.describe "Paystack webhooks", type: :request do
       expect(response).to have_http_status(:bad_request)
       expect(json.dig("error", "code")).to eq("bad_request")
     end
-  end
-
-  def create_creator(username:)
-    tribe = Tribe.create!(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      country_code: "KE",
-      currency: "KES"
-    )
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
   end
 
   describe "transfer.success webhook" do
