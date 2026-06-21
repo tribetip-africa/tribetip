@@ -21,9 +21,7 @@ module PublicProfileRenderable
   end
 
   def render_share_public_profile(tribe)
-    apply_http_cache_policy(:no_store)
-
-    render json: { profile: public_profile_json(tribe) }
+    render_public_profile(tribe)
   end
 
   def public_profile_cache_key(tribe)
