@@ -3,30 +3,6 @@
 require "rails_helper"
 
 RSpec.describe "Creator share links", type: :request do
-  def json
-    JSON.parse(response.body)
-  end
-
-  def bearer_token_for(tribe)
-    token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
-    { "Authorization" => "Bearer #{token}" }
-  end
-
-  def create_creator(username: "share_me")
-    tribe = Tribe.new(
-      email: "#{username}@tribetip.africa",
-      password: "securepass123",
-      password_confirmation: "securepass123",
-      username: username,
-      display_name: "Share Me",
-      is_profile_public: true,
-      account_status: "active"
-    )
-    tribe.skip_confirmation!
-    tribe.save!
-    complete_stub_paystack_onboarding!(tribe)
-    tribe.reload
-  end
 
   it "returns an opaque share link for the signed-in creator" do
     tribe = create_creator
