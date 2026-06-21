@@ -5,8 +5,8 @@ module Tribetip
     module_function
 
     def labels_for(default_cents, currency)
-      standard = [default_cents.to_i, 100].max
-      generous = [standard + 100, standard * 2].max
+      standard = [ default_cents.to_i, 100 ].max
+      generous = [ standard + 100, standard * 2 ].max
 
       [
         MoneyFormat.format_cents(standard, currency),

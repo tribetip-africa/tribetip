@@ -37,7 +37,7 @@ RSpec.describe "Public widget config", type: :request do
     expect(config.fetch("destination_url")).to include("/t/")
     expect(config.fetch("cta_text")).to eq("Support @widget_public")
     expect(config.fetch("position")).to eq("bottom-right")
-    expect(config.fetch("tip_presets")).to eq(["KSh 500", "KSh 1,000", "Custom"])
+    expect(config.fetch("tip_presets")).to eq([ "KSh 500", "KSh 1,000", "Custom" ])
     expect(config.fetch("payment_hint")).to include("M-Pesa")
   end
 
