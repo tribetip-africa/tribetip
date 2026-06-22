@@ -67,6 +67,14 @@ RSpec.describe Tribetip::Paystack::Client do
     expect(response.authorization_url).to include("tip_subaccount_ref")
   end
 
+  describe ".rate_limited_response?" do
+    it "detects Paystack rate limit messages and HTTP 429 responses" do
+      expect(described_class.rate_limited_message?("Rate limit exceeded!")).to be(true)
+      expect(described_class.rate_limited_response?({ "_http_status" => 429, "message" => "slow down" })).to be(true)
+      expect(described_class.rate_limited_response?({ "_http_status" => 200, "message" => "ok" })).to be(false)
+    end
+  end
+
   it "lists stub banks for a Paystack bank country" do
     response = client.list_banks(paystack_bank_country: "kenya")
 
