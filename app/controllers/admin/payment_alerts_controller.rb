@@ -3,9 +3,11 @@
 module Admin
   class PaymentAlertsController < BaseController
     def index
+      authorize PaymentAlert, :index?
+
       apply_http_cache_policy(:no_store)
 
-      alerts = PaymentAlert.recent_first
+      alerts = policy_scope(PaymentAlert).recent_first
       alerts = alerts.unresolved if ActiveModel::Type::Boolean.new.cast(params[:unresolved])
 
       render json: {
