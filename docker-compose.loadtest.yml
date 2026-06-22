@@ -1,0 +1,25 @@
+# Elevated Rack::Attack limits for local load + E2E runs.
+# Usage: bin/docker prod -f docker-compose.loadtest.yml up -d
+# (e2e-under-load.sh applies this automatically.)
+
+x-loadtest-rack-attack: &loadtest-rack-attack
+  RACK_ATTACK_PUBLIC_PROFILE_LIMIT: "20000"
+  RACK_ATTACK_SHARE_PROFILE_LIMIT: "20000"
+  RACK_ATTACK_WIDGET_CONFIG_LIMIT: "20000"
+  RACK_ATTACK_TIPS_LIMIT: "600"
+  RACK_ATTACK_TIP_CHECKOUT_LIMIT: "600"
+  RACK_ATTACK_TIP_RECONCILE_LIMIT: "400"
+  TRIBETIP_PAYSTACK_CHECKOUT_CONCURRENCY_PER_TRIBE: "2"
+  TRIBETIP_PAYSTACK_INLINE_RETRY_ATTEMPTS: "6"
+
+services:
+  api:
+    environment:
+      <<: *loadtest-rack-attack
+    volumes:
+      - ./scripts/loadtest/results:/rails/scripts/loadtest/results
+      - ./scripts/loadtest:/rails/scripts/loadtest:ro
+
+  worker:
+    environment:
+      <<: *loadtest-rack-attack
