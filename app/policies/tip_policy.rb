@@ -22,4 +22,8 @@ class TipPolicy < ApplicationPolicy
   def reconcile?
     owner_of_tip?(context) && record.pending?
   end
+
+  def investigate?
+    admin?
+  end
 end
