@@ -3,7 +3,7 @@
 module Me
   class NotificationsController < ApplicationController
     before_action :authenticate_tribe!
-    before_action :ensure_creator!
+    before_action :authorize_notification_access!
 
     def index
       apply_http_cache_policy(:no_store)
@@ -32,12 +32,8 @@ module Me
 
     private
 
-    def ensure_creator!
-      return if current_tribe.creator?
-
-      render_error(
-        Tribetip::Errors::BadRequest.new("Notifications are not available for admin accounts.")
-      )
+    def authorize_notification_access!
+      authorize current_tribe, :access_notifications?
     end
 
     def limit_param
