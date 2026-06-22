@@ -41,4 +41,17 @@ RSpec.describe TipPolicy do
       expect(policy.reconcile?).to be(false)
     end
   end
+
+  describe "#investigate?" do
+    it "allows admins" do
+      admin = create_tribe(username: "tip_policy_admin", role: "admin", account_status: "active")
+      admin_context = Tribetip::Authorization::Context.new(subject: admin, resource: tip)
+
+      expect(described_class.new(admin_context, tip).investigate?).to be(true)
+    end
+
+    it "denies creators" do
+      expect(policy.investigate?).to be(false)
+    end
+  end
 end
