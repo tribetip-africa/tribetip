@@ -1,4 +1,5 @@
 require Rails.root.join("lib/tribetip/rack_attack_paths")
+require Rails.root.join("lib/tribetip/rack_attack_keys")
 
 class Rack::Attack
   # Mitigate brute force against authentication endpoints.
@@ -12,81 +13,67 @@ class Rack::Attack
     end
   end
 
-  # Limit public profile enumeration.
+  # Per viewer IP + creator username so one profile cannot exhaust another's bucket.
   throttle(
-    "public_profiles/ip",
+    "public_profiles/view",
     limit: ENV.fetch("RACK_ATTACK_PUBLIC_PROFILE_LIMIT", 60).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if Tribetip::RackAttackPaths.public_profile_path?(req)
+    Tribetip::RackAttackKeys.profile_view(req) if Tribetip::RackAttackPaths.public_profile_path?(req)
   end
 
   throttle(
-    "share_profiles/ip",
+    "share_profiles/view",
     limit: ENV.fetch("RACK_ATTACK_SHARE_PROFILE_LIMIT", 180).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if Tribetip::RackAttackPaths.share_profile_path?(req)
+    Tribetip::RackAttackKeys.share_profile_view(req) if Tribetip::RackAttackPaths.share_profile_path?(req)
   end
 
   throttle(
-    "widget_config/ip",
+    "widget_config/view",
     limit: ENV.fetch("RACK_ATTACK_WIDGET_CONFIG_LIMIT", 120).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if Tribetip::RackAttackPaths.widget_config_path?(req)
+    Tribetip::RackAttackKeys.widget_config_view(req) if Tribetip::RackAttackPaths.widget_config_path?(req)
   end
 
+  # Per supporter IP + target creator so unrelated creators are not blocked together.
   throttle(
-    "tips/ip",
+    "tips/create",
     limit: ENV.fetch("RACK_ATTACK_TIPS_LIMIT", 30).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if req.post? && req.path == "/tips"
+    Tribetip::RackAttackKeys.tip_create(req)
   end
 
+  # Per checkout reference (one tip session), not a shared IP bucket.
   throttle(
-    "tip_checkout/ip",
+    "tip_checkout/reference",
     limit: ENV.fetch("RACK_ATTACK_TIP_CHECKOUT_LIMIT", 30).to_i,
     period: 60.seconds
   ) do |req|
-    req.ip if req.get? && req.path.match?(%r{\A/tips/checkout/[A-Za-z0-9_-]+\z})
-  end
-
-  throttle(
-    "tip_checkout/reference",
-    limit: ENV.fetch("RACK_ATTACK_TIP_REFERENCE_LIMIT", 10).to_i,
-    period: 60.seconds
-  ) do |req|
-    req.path if req.get? && req.path.match?(%r{\A/tips/checkout/[A-Za-z0-9_-]+\z})
-  end
-
-  throttle(
-    "tip_reconcile/ip",
-    limit: ENV.fetch("RACK_ATTACK_TIP_RECONCILE_LIMIT", 20).to_i,
-    period: 60.seconds
-  ) do |req|
-    req.ip if req.post? && req.path.match?(%r{\A/tips/[A-Za-z0-9_-]+/reconcile\z})
+    Tribetip::RackAttackKeys.tip_checkout_poll(req) if req.get? && req.path.match?(Tribetip::RackAttackKeys::TIP_CHECKOUT_PATTERN)
   end
 
   throttle(
     "tip_reconcile/reference",
-    limit: ENV.fetch("RACK_ATTACK_TIP_REFERENCE_LIMIT", 10).to_i,
+    limit: ENV.fetch("RACK_ATTACK_TIP_RECONCILE_LIMIT", 20).to_i,
     period: 60.seconds
   ) do |req|
-    req.path if req.post? && req.path.match?(%r{\A/tips/[A-Za-z0-9_-]+/reconcile\z})
+    Tribetip::RackAttackKeys.tip_reconcile(req) if req.post? && req.path.match?(Tribetip::RackAttackKeys::TIP_RECONCILE_PATTERN)
   end
 
-  throttle("paystack_repair/ip", limit: 6, period: 5.minutes) do |req|
-    req.ip if req.post? && req.path == "/me/paystack/repair"
+  throttle("paystack_repair/account", limit: 6, period: 5.minutes) do |req|
+    Tribetip::RackAttackKeys.bearer_account(req) if req.post? && req.path == "/me/paystack/repair"
   end
 
   throttle("admin_paystack_repair/ip", limit: 10, period: 5.minutes) do |req|
     req.ip if req.post? && req.path.match?(%r{\A/admin/tribes/[^/]+/repair\z})
   end
 
-  throttle("paystack_withdrawal/ip", limit: 6, period: 5.minutes) do |req|
-    req.ip if req.post? && req.path == "/me/paystack/withdrawals"
+  throttle("paystack_withdrawal/account", limit: 6, period: 5.minutes) do |req|
+    Tribetip::RackAttackKeys.bearer_account(req) if req.post? && req.path == "/me/paystack/withdrawals"
   end
 
   self.throttled_responder = lambda do |_request|
