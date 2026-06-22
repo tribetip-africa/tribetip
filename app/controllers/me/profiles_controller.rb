@@ -2,9 +2,8 @@
 
 module Me
   class ProfilesController < ApplicationController
-    include RequirePaystackOnboarding
-
     before_action :authenticate_tribe!
+    include RequireCreatorDashboard
 
     def show
       authorize current_tribe, :show?
