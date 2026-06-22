@@ -9,6 +9,7 @@ HOST_HEALTH_URL="${HOST_HEALTH_URL:-http://localhost:3001}"
 TARGET_RPM="${TARGET_RPM:-10000}"
 DURATION="${DURATION:-3m}"
 CREATOR_USERNAME="${CREATOR_USERNAME:-demo_creator}"
+K6_SCRIPT="${K6_SCRIPT:-k6-mixed.js}"
 RESULTS_DIR="$ROOT/scripts/loadtest/results"
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker.prod)
 
@@ -33,16 +34,17 @@ if [[ -z "$NETWORK" ]]; then
   exit 1
 fi
 
-echo "Running k6 on network ${NETWORK}: ${TARGET_RPM} RPM (~$((TARGET_RPM / 60))/s) for ${DURATION} ..."
+echo "Running k6 (${K6_SCRIPT}) on network ${NETWORK}: ${TARGET_RPM} RPM (~$((TARGET_RPM / 60))/s) for ${DURATION} ..."
 docker run --rm \
   --network "$NETWORK" \
   -e BASE_URL="$BASE_URL" \
   -e TARGET_RPM="$TARGET_RPM" \
   -e DURATION="$DURATION" \
   -e HOST_HEADER="${HOST_HEADER:-localhost}" \
-  -v "$ROOT/scripts/loadtest/k6-mixed.js:/scripts/k6-mixed.js:ro" \
+  -e CREATOR_USERNAME="$CREATOR_USERNAME" \
+  -v "$ROOT/scripts/loadtest/${K6_SCRIPT}:/scripts/${K6_SCRIPT}:ro" \
   -v "$RESULTS_DIR:/results" \
-  grafana/k6:latest run /scripts/k6-mixed.js
+  grafana/k6:latest run "/scripts/${K6_SCRIPT}"
 
 echo ""
 echo "Full metrics: ${RESULTS_DIR}/summary.json"
