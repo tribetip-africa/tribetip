@@ -8,6 +8,7 @@
 /.env*
 !/.env.example
 !/.env.docker.example
+!/.env.docker.prod.example
 /.env*.local
 /config/master.key
 /config/credentials/*.key
@@ -81,6 +82,7 @@ docker-compose.override.yml
 # Misc local scratch
 .scratch/
 *.local
+/scripts/loadtest/results/*.json
 
 # Cursor (track project rules only)
 .cursor/*
