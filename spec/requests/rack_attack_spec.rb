@@ -19,7 +19,7 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     )
   end
 
-  it "rate limits repeated public profile lookups" do
+  it "rate limits repeated public profile lookups for the same creator" do
     Rack::Attack.reset!
     create_public_tribe(username: "throttle_me")
     exhaust_public_profile_limit("throttle_me")
@@ -31,11 +31,23 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     expect(body.dig("error", "message")).to match(/too many requests/i)
   end
 
+  it "does not rate limit profile lookups for a different creator on the same IP" do
+    Rack::Attack.reset!
+    create_public_tribe(username: "throttle_me")
+    create_public_tribe(username: "other_creator")
+    exhaust_public_profile_limit("throttle_me")
+
+    get "/tribes/other_creator"
+
+    expect(response).to have_http_status(:ok)
+  end
+
   it "rate limits repeated public checkout polling for the same reference" do
     Rack::Attack.reset!
     tip = create_tip(reference: "tip_checkout_throttle")
+    limit = ENV.fetch("RACK_ATTACK_TIP_CHECKOUT_LIMIT", 30).to_i
 
-    10.times { get "/tips/checkout/#{tip.paystack_reference}" }
+    limit.times { get "/tips/checkout/#{tip.paystack_reference}" }
     get "/tips/checkout/#{tip.paystack_reference}"
 
     expect(response).to have_http_status(429)
@@ -46,8 +58,9 @@ RSpec.describe "Rack::Attack throttling", type: :request do
   it "rate limits repeated public reconciliation for the same reference" do
     Rack::Attack.reset!
     tip = create_tip(reference: "tip_reconcile_throttle")
+    limit = ENV.fetch("RACK_ATTACK_TIP_RECONCILE_LIMIT", 20).to_i
 
-    10.times { post "/tips/#{tip.paystack_reference}/reconcile", as: :json }
+    limit.times { post "/tips/#{tip.paystack_reference}/reconcile", as: :json }
     post "/tips/#{tip.paystack_reference}/reconcile", as: :json
 
     expect(response).to have_http_status(429)
