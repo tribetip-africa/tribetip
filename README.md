@@ -41,6 +41,17 @@ bin/docker logs -f worker     # webhook + Paystack jobs
 bin/docker down
 ```
 
+### Production-like stack (load testing)
+
+Tuned Puma workers, healthchecks, Postgres limits, and resource caps. Rate limits stay at production defaults.
+
+```bash
+bin/docker prod down
+bin/docker prod up --build -d
+bin/docker prod ps            # wait until api is healthy
+scripts/loadtest/run.sh       # 10k RPM mixed traffic (~3 min)
+```
+
 Copy `.env.docker.example` to `.env.docker` automatically on first run. Docker seeds with password `localdev` when `TRIBETIP_SEED_ENABLED=true`.
 
 ### Paystack webhooks locally
