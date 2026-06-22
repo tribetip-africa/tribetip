@@ -3,9 +3,11 @@
 module Admin
   class PaystackEventsController < BaseController
     def index
+      authorize PaystackEvent, :index?
+
       apply_http_cache_policy(:no_store)
 
-      events = PaystackEvent.recent_first
+      events = policy_scope(PaystackEvent).recent_first
       events = events.where(status: params[:status]) if params[:status].present?
 
       render json: {
@@ -21,7 +23,8 @@ module Admin
     def replay
       apply_http_cache_policy(:no_store)
 
-      event = PaystackEvent.find(params[:id])
+      event = policy_scope(PaystackEvent).find(params[:id])
+      authorize event, :replay?
       unless event.replayable?
         return render_error(
           Tribetip::Errors::BadRequest.new("Only failed webhook events can be replayed.")
