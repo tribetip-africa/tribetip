@@ -5,6 +5,18 @@ class TribePolicy < ApplicationPolicy
   include Tribetip::Authorization::Rules::Paystack
   include Tribetip::Authorization::Rules::Region
 
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user&.admin?
+
+      scope.all
+    end
+  end
+
+  def index?
+    admin?
+  end
+
   def show?
     owner?(context) || admin?
   end
