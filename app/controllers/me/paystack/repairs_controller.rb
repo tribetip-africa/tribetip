@@ -4,7 +4,7 @@ module Me
   module Paystack
     class RepairsController < ApplicationController
       before_action :authenticate_tribe!
-      before_action :ensure_creator_for_paystack!
+      before_action :authorize_paystack_repair!
 
       def create
         apply_http_cache_policy(:no_store)
@@ -18,12 +18,8 @@ module Me
 
       private
 
-      def ensure_creator_for_paystack!
-        return if current_tribe.creator?
-
-        render_error(
-          Tribetip::Errors::BadRequest.new("Paystack repair is not available for admin accounts.")
-        )
+      def authorize_paystack_repair!
+        authorize current_tribe, :access_paystack_repair?
       end
     end
   end
