@@ -3,10 +3,10 @@
 module Me
   class TipsController < ApplicationController
     include TipSerializable
-    include RequirePaystackOnboarding
     include AuditRequestContext
 
     before_action :authenticate_tribe!
+    include RequireCreatorDashboard
 
     def index
       tips = policy_scope(Tip).recent_first
