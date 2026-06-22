@@ -4,6 +4,8 @@ module Admin
   module Paystack
     class ReconciliationsController < BaseController
       def show
+        authorize PlatformReconciliation, :show?
+
         apply_http_cache_policy(:no_store)
 
         report = Tribetip::SecureCache.read(
@@ -20,6 +22,8 @@ module Admin
       end
 
       def create
+        authorize PlatformReconciliation, :create?
+
         apply_http_cache_policy(:no_store)
 
         if async_requested?
