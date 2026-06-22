@@ -9,7 +9,7 @@ module Tribetip
     ].freeze
 
     PUBLIC_PROFILE_PATTERN = %r{\A/tribes/[a-z0-9_]+\z}
-    SHARE_PROFILE_PATTERN = %r{\A/share/[A-Za-z0-9_-]{20,48}\z}
+    SHARE_PROFILE_PATTERN = %r{\A/share/([A-Za-z0-9_-]{20,48})\z}
     WIDGET_CONFIG_PATH = "/widget/config"
 
     module_function
