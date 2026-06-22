@@ -6,7 +6,7 @@ module Me
       include Idempotable
 
       before_action :authenticate_tribe!
-      before_action :ensure_creator_for_paystack!
+      before_action :authorize_paystack_onboarding!
       ONBOARDING_WAIT = ENV.fetch("TRIBETIP_ONBOARDING_WAIT_SECONDS", 10).to_i.seconds
       CUSTOMER_WAIT = ENV.fetch("TRIBETIP_CUSTOMER_WAIT_SECONDS", 5).to_i.seconds
 
@@ -148,12 +148,8 @@ module Me
         end == true
       end
 
-      def ensure_creator_for_paystack!
-        return if current_tribe.creator?
-
-        render_error(
-          Tribetip::Errors::BadRequest.new("Paystack onboarding is not available for admin accounts.")
-        )
+      def authorize_paystack_onboarding!
+        authorize current_tribe, :access_paystack_onboarding?
       end
     end
   end
