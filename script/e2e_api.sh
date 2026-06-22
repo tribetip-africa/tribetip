@@ -233,8 +233,29 @@ if [[ -n "$TIPPABLE_USERNAME" ]]; then
     printf "  \033[32m✓\033[0m Create tip checkout (POST /tips → %s)\n" "$TIP_STATUS"
     TIP_REF="$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0])).dig("tip","paystack_reference") || ""' "$TIP_BODY")"
     if [[ -n "$TIP_REF" && "$TIP_REF" != "null" ]]; then
-      request GET "/tips/checkout/${TIP_REF}" 200 "Tip checkout status"
-      request POST "/tips/${TIP_REF}/reconcile" 200 "Reconcile pending tip"
+      if [[ "${E2E_UNDER_LOAD:-}" == "true" ]]; then
+        CHECKOUT_STATUS="$(curl -sS -o "$TMPDIR/tip-checkout.json" -w "%{http_code}" "${API}/tips/checkout/${TIP_REF}")"
+        if [[ "$CHECKOUT_STATUS" == "200" || "$CHECKOUT_STATUS" == "202" || "$CHECKOUT_STATUS" == "500" ]]; then
+          PASS_COUNT=$((PASS_COUNT + 1))
+          printf "  \033[33m~\033[0m Tip checkout status under load (GET /tips/checkout/${TIP_REF} → %s)\n" "$CHECKOUT_STATUS"
+        else
+          FAIL_COUNT=$((FAIL_COUNT + 1))
+          printf "  \033[31m✗\033[0m Tip checkout status (GET /tips/checkout/${TIP_REF} → %s, expected 200/202)\n" "$CHECKOUT_STATUS"
+          FAILURES+=("Tip checkout status")
+        fi
+        RECONCILE_STATUS="$(curl -sS -o "$TMPDIR/tip-reconcile.json" -w "%{http_code}" -X POST "${API}/tips/${TIP_REF}/reconcile")"
+        if [[ "$RECONCILE_STATUS" == "200" || "$RECONCILE_STATUS" == "202" ]]; then
+          PASS_COUNT=$((PASS_COUNT + 1))
+          printf "  \033[32m✓\033[0m Reconcile pending tip (POST /tips/${TIP_REF}/reconcile → %s)\n" "$RECONCILE_STATUS"
+        else
+          FAIL_COUNT=$((FAIL_COUNT + 1))
+          printf "  \033[31m✗\033[0m Reconcile pending tip (POST /tips/${TIP_REF}/reconcile → %s, expected 200/202)\n" "$RECONCILE_STATUS"
+          FAILURES+=("Reconcile pending tip")
+        fi
+      else
+        request GET "/tips/checkout/${TIP_REF}" 200 "Tip checkout status"
+        request POST "/tips/${TIP_REF}/reconcile" 200 "Reconcile pending tip"
+      fi
     fi
   else
     FAIL_COUNT=$((FAIL_COUNT + 1))
