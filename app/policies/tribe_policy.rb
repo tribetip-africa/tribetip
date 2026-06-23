@@ -76,4 +76,10 @@ class TribePolicy < ApplicationPolicy
   def access_paystack_repair?
     creator_only?(context)
   end
+
+  def reveal_paystack_account_number?
+    creator_only?(context) &&
+      active_account?(context) &&
+      payout_ready?(record)
+  end
 end
