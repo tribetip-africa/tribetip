@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_16_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -167,6 +167,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_140000) do
     t.index ["tribe_id"], name: "index_tips_on_tribe_id"
   end
 
+  create_table "tribe_audit_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "tribe_id", null: false
+    t.string "action", null: false
+    t.jsonb "details", default: {}, null: false
+    t.string "request_id"
+    t.string "ip"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.index ["action"], name: "index_tribe_audit_logs_on_action"
+    t.index ["created_at"], name: "index_tribe_audit_logs_on_created_at"
+    t.index ["tribe_id", "created_at"], name: "index_tribe_audit_logs_on_tribe_id_and_created_at"
+    t.index ["tribe_id"], name: "index_tribe_audit_logs_on_tribe_id"
+  end
+
   create_table "tribes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -210,12 +224,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_16_140000) do
     t.string "widget_position", default: "bottom-right", null: false
     t.string "widget_cta_text", default: "Tip me", null: false
     t.boolean "widget_open_same_tab", default: false, null: false
+    t.datetime "last_password_authenticated_at"
     t.index ["account_status"], name: "index_tribes_on_account_status"
     t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_tribes_on_confirmed_at", where: "(confirmed_at IS NOT NULL)"
     t.index ["country_code", "username"], name: "index_tribes_active_public_by_country", where: "((is_profile_public = true) AND ((account_status)::text = 'active'::text))"
     t.index ["country_code"], name: "index_tribes_on_country_code"
     t.index ["email"], name: "index_tribes_on_email", unique: true
+    t.index ["last_password_authenticated_at"], name: "index_tribes_on_last_password_authenticated_at"
     t.index ["paystack_customer_code"], name: "index_tribes_on_paystack_customer_code", unique: true, where: "(paystack_customer_code IS NOT NULL)"
     t.index ["paystack_subaccount_code"], name: "index_tribes_on_paystack_subaccount_code", unique: true, where: "(paystack_subaccount_code IS NOT NULL)"
     t.index ["reset_password_token"], name: "index_tribes_on_reset_password_token", unique: true
