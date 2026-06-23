@@ -66,4 +66,23 @@ RSpec.describe TribePolicy do
       expect(policy.publish?).to be(true)
     end
   end
+
+  describe "#reveal_paystack_account_number?" do
+    it "allows active onboarded creators" do
+      complete_stub_paystack_onboarding!(tribe)
+
+      expect(policy.reveal_paystack_account_number?).to be(true)
+    end
+
+    it "denies creators without payout setup" do
+      expect(policy.reveal_paystack_account_number?).to be(false)
+    end
+
+    it "denies suspended creators" do
+      complete_stub_paystack_onboarding!(tribe)
+      tribe.update!(account_status: "suspended")
+
+      expect(policy.reveal_paystack_account_number?).to be(false)
+    end
+  end
 end
