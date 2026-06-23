@@ -76,6 +76,18 @@ class Rack::Attack
     Tribetip::RackAttackKeys.bearer_account(req) if req.post? && req.path == "/me/paystack/withdrawals"
   end
 
+  throttle(
+    "paystack_account_number/account",
+    limit: ENV.fetch("RACK_ATTACK_ACCOUNT_NUMBER_REVEAL_LIMIT", 6).to_i,
+    period: 5.minutes
+  ) do |req|
+    Tribetip::RackAttackKeys.bearer_account(req) if Tribetip::RackAttackPaths.account_number_reveal_path?(req)
+  end
+
+  throttle("session_refresh/account", limit: 12, period: 5.minutes) do |req|
+    Tribetip::RackAttackKeys.bearer_account(req) if Tribetip::RackAttackPaths.session_refresh_path?(req)
+  end
+
   self.throttled_responder = lambda do |_request|
     tribetip_error = Tribetip::Errors::RateLimit.new
     [
