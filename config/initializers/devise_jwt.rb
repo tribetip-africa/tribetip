@@ -13,6 +13,6 @@ Devise.setup do |config|
     jwt.revocation_requests = [
       [ "DELETE", %r{^/tribes/sign_out} ]
     ]
-    jwt.expiration_time = 1.day.to_i
+    jwt.expiration_time = ENV.fetch("DEVISE_JWT_EXPIRATION_SECONDS", 4.hours.to_i).to_i
   end
 end

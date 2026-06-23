@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class TipPolicy < ApplicationPolicy
+  include Tribetip::Authorization::Rules::Account
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user
@@ -14,16 +16,14 @@ class TipPolicy < ApplicationPolicy
   end
 
   def show?
-    owner? || admin?
+    owner_of_tip?(context) || admin?
   end
 
   def reconcile?
-    owner? && record.pending?
+    owner_of_tip?(context) && record.pending?
   end
 
-  private
-
-  def owner?
-    user.present? && record.tribe_id == user.id
+  def investigate?
+    admin?
   end
 end

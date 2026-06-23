@@ -4,8 +4,13 @@ module Paystack
   class InitializeTipCheckoutJob < ApplicationJob
     queue_as :paystack
 
-    limits_concurrency to: 1, key: ->(tip_id) { "tip-checkout/#{tip_id}" }, duration: 10.minutes
+    limits_concurrency(
+      to: ENV.fetch("TRIBETIP_PAYSTACK_CHECKOUT_CONCURRENCY_PER_TRIBE", 2).to_i,
+      key: ->(tip_id) { checkout_concurrency_key(tip_id) },
+      duration: 10.minutes
+    )
 
+    retry_on Tribetip::Paystack::RateLimited, wait: :polynomially_longer, attempts: 25
     retry_on StandardError, wait: :polynomially_longer, attempts: 5
 
     def perform(tip_id)
@@ -27,6 +32,10 @@ module Paystack
         )
 
         unless checkout.success?
+          if Tribetip::Paystack::Client.rate_limited_message?(checkout.message)
+            raise Tribetip::Paystack::RateLimited, checkout.message
+          end
+
           tip.update!(
             paystack_metadata: tip.paystack_metadata.merge(
               "checkout_status" => "failed",
@@ -49,6 +58,11 @@ module Paystack
     end
 
     private
+
+    def checkout_concurrency_key(tip_id)
+      tribe_id = Tip.where(id: tip_id).pick(:tribe_id) || tip_id
+      "paystack-checkout/tribe/#{tribe_id}"
+    end
 
     def record_checkout_event(tip, action:, message: nil)
       Tribetip::Audit::RecordTipEvent.call(

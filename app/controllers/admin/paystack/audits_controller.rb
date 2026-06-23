@@ -28,7 +28,7 @@ module Admin
       private
 
       def set_tribe
-        @tribe = Tribe.find(params[:id])
+        @tribe = policy_scope(Tribe).find(params[:id])
       end
 
       def sync_requested?

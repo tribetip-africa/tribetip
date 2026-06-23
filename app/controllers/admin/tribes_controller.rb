@@ -7,6 +7,8 @@ module Admin
     before_action :set_tribe, only: %i[suspend activate]
 
     def index
+      authorize Tribe, :index?
+
       apply_http_cache_policy(:no_store)
       tribes = filtered_tribes.limit(page_limit).offset(page_offset)
       tip_stats = Tribetip::Metrics::TribeTipStats.for_tribes(tribes)
@@ -49,11 +51,11 @@ module Admin
     private
 
     def set_tribe
-      @tribe = Tribe.find(params[:id])
+      @tribe = policy_scope(Tribe).find(params[:id])
     end
 
     def filtered_tribes
-      scope = Tribe.order(created_at: :desc)
+      scope = policy_scope(Tribe).order(created_at: :desc)
       query = params[:q].to_s.strip.downcase
       return scope if query.blank?
 

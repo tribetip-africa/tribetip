@@ -3,7 +3,7 @@
 module Me
   class ShareLinksController < ApplicationController
     before_action :authenticate_tribe!
-    before_action :ensure_creator!
+    before_action :authorize_share_link_access!
 
     def show
       apply_http_cache_policy(:no_store)
@@ -30,12 +30,8 @@ module Me
 
     private
 
-    def ensure_creator!
-      return if current_tribe.creator?
-
-      render_error(
-        Tribetip::Errors::BadRequest.new("Share links are not available for admin accounts.")
-      )
+    def authorize_share_link_access!
+      authorize current_tribe, :manage_share_link?
     end
 
     def share_link_payload(token, shareable:)

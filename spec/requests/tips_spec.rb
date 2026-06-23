@@ -78,4 +78,20 @@ RSpec.describe "Tips checkout", type: :request do
       expect(json.fetch("tip")).not_to include("supporter_email", "supporter_name", "message")
     end
   end
+
+  describe "GET /tips/checkout/:paystack_reference" do
+    it "polls checkout status and records reconcile attempts" do
+      tribe = create_tippable_tribe(username: "tip_checkout_poll")
+      post_tip(username: "tip_checkout_poll")
+      reference = json.dig("tip", "paystack_reference")
+      tip = tribe.tips.find_by!(paystack_reference: reference)
+
+      get "/tips/checkout/#{reference}", as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(json.dig("tip", "paystack_reference")).to eq(reference)
+      expect(json.dig("tip", "authorization_url")).to be_present
+      expect(tip.tip_events.where(action: "reconcile_attempted").count).to eq(1)
+    end
+  end
 end

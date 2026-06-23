@@ -11,10 +11,20 @@ module Authorization
   private
 
   def pundit_user
-    current_tribe
+    @pundit_user ||= Tribetip::Authorization::Context.new(
+      subject: current_tribe,
+      environment: authorization_environment
+    )
   end
 
-  def render_authorization_error(_exception = nil)
-    render_error(Tribetip::Errors::Authorization.new)
+  def authorization_environment
+    {
+      ip: request.remote_ip,
+      path: request.path
+    }
+  end
+
+  def render_authorization_error(exception)
+    render_error(Tribetip::Authorization.error_for(exception))
   end
 end

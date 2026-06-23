@@ -193,6 +193,21 @@ module Tribetip
         ActiveSupport::SecurityUtils.secure_compare(digest, signature)
       end
 
+      INLINE_RETRY_ATTEMPTS = ENV.fetch("TRIBETIP_PAYSTACK_INLINE_RETRY_ATTEMPTS", 4).to_i
+      INLINE_RETRY_BASE_SECONDS = ENV.fetch("TRIBETIP_PAYSTACK_INLINE_RETRY_BASE_SECONDS", 0.25).to_f
+      INLINE_RETRY_MAX_SECONDS = ENV.fetch("TRIBETIP_PAYSTACK_INLINE_RETRY_MAX_SECONDS", 5).to_f
+
+      def self.rate_limited_response?(response, parsed = response)
+        return rate_limited_message?(response) unless parsed.is_a?(Hash)
+
+        status = parsed["_http_status"] || response.try(:code).to_i
+        status == 429 || rate_limited_message?(parsed["message"])
+      end
+
+      def self.rate_limited_message?(message)
+        message.to_s.match?(/rate limit/i)
+      end
+
       private
 
       def stub_resource(prefix)
@@ -340,21 +355,53 @@ module Tribetip
       end
 
       def request_json(request_class, path, body = nil)
+        attempt = 0
+
+        loop do
+          response = perform_http_request(request_class, path, body)
+          parsed = parse_response_body(response)
+
+          if self.class.rate_limited_response?(response, parsed)
+            attempt += 1
+            if attempt > INLINE_RETRY_ATTEMPTS
+              raise RateLimited, parsed["message"] || "Paystack rate limit exceeded."
+            end
+
+            sleep(inline_retry_delay(attempt))
+            next
+          end
+
+          return parsed
+        end
+      rescue JSON::ParserError
+        { "status" => false, "message" => "Invalid Paystack response" }
+      rescue RateLimited
+        raise
+      rescue Timeout::Error, Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, OpenSSL::SSLError => error
+        { "status" => false, "message" => "Paystack is unreachable (#{error.class.name}). Check network connectivity." }
+      end
+
+      def perform_http_request(request_class, path, body)
         uri = URI("#{API_BASE_URL}#{path}")
         request = request_class.new(uri)
         request["Authorization"] = "Bearer #{@secret_key}"
         request["Content-Type"] = "application/json"
         request.body = body.to_json if body
 
-        response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 15) do |http|
+        Net::HTTP.start(uri.hostname, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 15) do |http|
           http.request(request)
         end
+      end
 
-        JSON.parse(response.body)
-      rescue JSON::ParserError
-        { "status" => false, "message" => "Invalid Paystack response" }
-      rescue Timeout::Error, Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, OpenSSL::SSLError => error
-        { "status" => false, "message" => "Paystack is unreachable (#{error.class.name}). Check network connectivity." }
+      def parse_response_body(response)
+        parsed = JSON.parse(response.body)
+        parsed["_http_status"] = response.code.to_i if parsed.is_a?(Hash)
+        parsed
+      end
+
+      def inline_retry_delay(attempt)
+        delay = INLINE_RETRY_BASE_SECONDS * (2**(attempt - 1))
+        [ delay, INLINE_RETRY_MAX_SECONDS ].min
       end
     end
   end

@@ -1,27 +1,39 @@
 # frozen_string_literal: true
 
 class ApplicationPolicy
-  attr_reader :user, :record
+  attr_reader :context, :user, :record
 
   def initialize(user, record)
-    @user = user
     @record = record
+    @context = build_context(user, record)
+    @user = @context.subject
   end
 
   def admin?
-    user&.admin?
+    context.admin?
   end
 
   class Scope
-    attr_reader :user, :scope
+    attr_reader :context, :user, :scope
 
     def initialize(user, scope)
-      @user = user
       @scope = scope
+      @context = user.is_a?(Tribetip::Authorization::Context) ? user : Tribetip::Authorization::Context.new(subject: user)
+      @user = @context.subject
     end
 
     def resolve
-      scope.all
+      scope.none
+    end
+  end
+
+  private
+
+  def build_context(user, record)
+    if user.is_a?(Tribetip::Authorization::Context)
+      user.with(resource: record)
+    else
+      Tribetip::Authorization::Context.new(subject: user, resource: record)
     end
   end
 end

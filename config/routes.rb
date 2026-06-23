@@ -3,6 +3,10 @@ Rails.application.routes.draw do
     sessions: "tribes/sessions",
     registrations: "tribes/registrations"
   }
+
+  devise_scope :tribe do
+    post "tribes/session/refresh", to: "tribes/sessions#refresh"
+  end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
@@ -50,6 +54,7 @@ Rails.application.routes.draw do
 
     namespace :paystack do
       resource :onboarding, only: %i[show create], controller: "onboarding"
+      resource :account_number, only: %i[show], controller: "account_numbers"
       resources :settlements, only: %i[index show]
       resources :withdrawals, only: %i[index create]
       resource :repair, only: %i[create], controller: "repairs"

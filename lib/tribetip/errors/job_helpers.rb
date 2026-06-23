@@ -5,6 +5,8 @@ module Tribetip
     module JobHelpers
       def run_job_step(context = {}, &block)
         block.call
+      rescue Tribetip::Paystack::RateLimited
+        raise
       rescue Tribetip::Errors::Base => e
         report_job_error(e, context)
         raise

@@ -3,7 +3,7 @@
 module Me
   class WidgetEmbedsController < ApplicationController
     before_action :authenticate_tribe!
-    before_action :ensure_creator!
+    before_action :authorize_widget_access!
 
     def show
       apply_http_cache_policy(:no_store)
@@ -46,12 +46,8 @@ module Me
 
     private
 
-    def ensure_creator!
-      return if current_tribe.creator?
-
-      render_error(
-        Tribetip::Errors::BadRequest.new("Website widgets are not available for admin accounts.")
-      )
+    def authorize_widget_access!
+      authorize current_tribe, :manage_widget?
     end
 
     def widget_embed_params

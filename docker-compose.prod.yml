@@ -1,0 +1,72 @@
+# Production-like overrides for local Docker load testing and staging.
+# Usage: bin/docker prod up --build -d
+#
+# Tuned Puma workers, healthchecks, Postgres limits, and resource caps.
+# Rate limits stay at production defaults so load tests surface real bottlenecks.
+
+x-prod-api-environment: &prod-api-environment
+  WEB_CONCURRENCY: "2"
+  RAILS_MAX_THREADS: "5"
+  DB_POOL: "10"
+  RAILS_LOG_LEVEL: "warn"
+  TRIBETIP_SEED_ENABLED: "true"
+  TRIBETIP_SEED_PASSWORD: "localdev"
+  TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "false"
+  CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - max_connections=200
+      - -c
+      - work_mem=8MB
+    shm_size: 256mb
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  api:
+    environment:
+      <<: *prod-api-environment
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "ruby -rnet/http -e \"u=URI('http://127.0.0.1:80/up'); r=Net::HTTP.get_response(u); exit(r.is_a?(Net::HTTPSuccess)?0:1)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  worker:
+    environment:
+      JOB_CONCURRENCY: "2"
+      RAILS_LOG_LEVEL: "warn"
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'bin/jobs' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 256M

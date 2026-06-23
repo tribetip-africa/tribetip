@@ -65,5 +65,70 @@ sync_paystack_env_from_dotenv() {
   fi
 }
 
+ensure_prod_env_file() {
+  if [[ -f .env.docker.prod ]]; then
+    return
+  fi
+
+  if [[ -f .env.docker ]]; then
+    cp .env.docker .env.docker.prod
+    echo "Created .env.docker.prod from .env.docker — review before deploying."
+    return
+  fi
+
+  if [[ ! -f .env.docker.prod.example ]]; then
+    echo "Missing .env.docker.prod.example" >&2
+    exit 1
+  fi
+
+  cp .env.docker.prod.example .env.docker.prod
+
+  if [[ -f config/master.key ]]; then
+    master_key="$(tr -d '[:space:]' < config/master.key)"
+    if [[ -n "$master_key" ]]; then
+      if grep -q '^RAILS_MASTER_KEY=' .env.docker.prod; then
+        sed -i '' "s/^RAILS_MASTER_KEY=.*/RAILS_MASTER_KEY=${master_key}/" .env.docker.prod
+      else
+        echo "RAILS_MASTER_KEY=${master_key}" >> .env.docker.prod
+      fi
+    fi
+  fi
+
+  if ! grep -q '^DEVISE_JWT_SECRET_KEY=.\+' .env.docker.prod; then
+    jwt_secret="$(bin/rails secret 2>/dev/null || true)"
+    if [[ -n "$jwt_secret" ]]; then
+      if grep -q '^DEVISE_JWT_SECRET_KEY=' .env.docker.prod; then
+        sed -i '' "s/^DEVISE_JWT_SECRET_KEY=.*/DEVISE_JWT_SECRET_KEY=${jwt_secret}/" .env.docker.prod
+      else
+        echo "DEVISE_JWT_SECRET_KEY=${jwt_secret}" >> .env.docker.prod
+      fi
+    fi
+  fi
+
+  sync_paystack_env_from_dotenv_prod
+  echo "Created .env.docker.prod — review secrets before sharing or deploying."
+}
+
+sync_paystack_env_from_dotenv_prod() {
+  [[ -f .env ]] || return
+
+  # shellcheck disable=SC1091
+  source .env
+
+  if [[ -n "${PAYSTACK_SECRET_KEY:-}" ]]; then
+    if grep -q '^PAYSTACK_SECRET_KEY=' .env.docker.prod; then
+      sed -i '' "s|^PAYSTACK_SECRET_KEY=.*|PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}|" .env.docker.prod
+    else
+      echo "PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}" >> .env.docker.prod
+    fi
+  fi
+}
+
+if [[ "${1:-}" == "prod" ]]; then
+  shift
+  ensure_prod_env_file
+  exec docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker.prod "$@"
+fi
+
 ensure_env_file
 exec docker compose --env-file .env.docker "$@"

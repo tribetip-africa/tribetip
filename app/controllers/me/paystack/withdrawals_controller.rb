@@ -6,7 +6,7 @@ module Me
       include Idempotable
 
       before_action :authenticate_tribe!
-      before_action :ensure_creator_for_paystack!
+      before_action :authorize_paystack_withdrawals!
 
       def index
         apply_http_cache_policy(:no_store)
@@ -64,12 +64,8 @@ module Me
                        .limit(10)
       end
 
-      def ensure_creator_for_paystack!
-        return if current_tribe.creator?
-
-        render_error(
-          Tribetip::Errors::BadRequest.new("Paystack withdrawals are not available for admin accounts.")
-        )
+      def authorize_paystack_withdrawals!
+        authorize current_tribe, :access_paystack_withdrawals?
       end
     end
   end

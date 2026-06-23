@@ -1,21 +1,36 @@
 # frozen_string_literal: true
 
 class TribePolicy < ApplicationPolicy
+  include Tribetip::Authorization::Rules::Account
+  include Tribetip::Authorization::Rules::Paystack
+  include Tribetip::Authorization::Rules::Region
+
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user&.admin?
+
+      scope.all
+    end
+  end
+
+  def index?
+    admin?
+  end
+
   def show?
-    owner? || admin?
+    owner?(context) || admin?
   end
 
   def update?
-    owner? && !record.suspended?
+    owner?(context) && !context.suspended?
   end
 
   def publish?
-    owner? &&
-      record.creator? &&
-      !record.suspended? &&
-      record.account_status == "active" &&
-      record.display_name.present? &&
-      record.paystack_onboarding_complete?
+    owner?(context) &&
+      context.creator? &&
+      active_account?(context) &&
+      payout_ready?(record) &&
+      record.display_name.present?
   end
 
   def suspend?
@@ -30,9 +45,41 @@ class TribePolicy < ApplicationPolicy
     admin?
   end
 
-  private
+  def access_dashboard?
+    dashboard_access?(context)
+  end
 
-  def owner?
-    user.present? && user.id == record.id
+  def manage_widget?
+    creator_only?(context)
+  end
+
+  def manage_share_link?
+    creator_only?(context)
+  end
+
+  def access_notifications?
+    creator_only?(context)
+  end
+
+  def access_paystack_onboarding?
+    creator_only?(context)
+  end
+
+  def access_paystack_withdrawals?
+    creator_only?(context)
+  end
+
+  def access_paystack_settlements?
+    creator_only?(context)
+  end
+
+  def access_paystack_repair?
+    creator_only?(context)
+  end
+
+  def reveal_paystack_account_number?
+    creator_only?(context) &&
+      active_account?(context) &&
+      payout_ready?(record)
   end
 end
