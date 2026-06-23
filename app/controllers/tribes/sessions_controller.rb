@@ -10,6 +10,16 @@ module Tribes
 
     prepend_before_action :normalize_sign_in_params, only: :create
     prepend_before_action :reject_suspended_sign_in, only: :create
+    before_action :authenticate_tribe!, only: %i[destroy refresh]
+
+    def refresh
+      apply_http_cache_policy(:no_store)
+      tribe = current_tribe
+      return render_error(Tribetip::Errors::Authentication.new) unless tribe
+
+      Tribetip::Security::RevokeBearerToken.call(bearer_token)
+      render json: tribe_payload(tribe), status: :ok
+    end
 
     private
 
@@ -61,6 +71,7 @@ module Tribes
     end
 
     def respond_with(resource, _opts = {})
+      Tribetip::Security::RecordPasswordAuthentication.call(resource) if resource.persisted?
       apply_http_cache_policy(:no_store)
       render json: tribe_payload(resource), status: :ok
     end
