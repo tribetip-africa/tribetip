@@ -11,6 +11,7 @@ RSpec.describe Tribetip::Paystack::FetchAccountNumber do
 
   it "returns the Paystack subaccount account number in live mode" do
     tribe = create_onboarded_tribe(username: "account_number_live")
+    tribe.update!(paystack_subaccount_code: "ACCT_live_demo")
     client = instance_double(Tribetip::Paystack::Client, stub_mode?: false)
     allow(Tribetip::Paystack::Client).to receive(:new).and_return(client)
     allow(client).to receive(:fetch_subaccount).with(tribe.paystack_subaccount_code).and_return(
