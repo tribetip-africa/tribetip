@@ -8,7 +8,11 @@ module Tribetip
       end
 
       def call
-        tribe_counts.merge(tip_counts).merge(payout_counts).merge(recent_tip_counts)
+        tribe_counts
+          .merge(tip_counts)
+          .merge(payout_counts)
+          .merge(recent_tip_counts)
+          .merge(ops_counts)
       end
 
       private
@@ -55,6 +59,31 @@ module Tribetip
 
       def volume_by_currency(scope)
         scope.group(:currency).sum(:amount_cents).transform_values(&:to_i)
+      end
+
+      def ops_counts
+        {
+          unresolved_payment_alerts: PaymentAlert.unresolved.count,
+          failed_webhooks: PaystackEvent.failed.count,
+          reconciliation: reconciliation_summary
+        }
+      end
+
+      def reconciliation_summary
+        report = Tribetip::SecureCache.read(
+          Tribetip::Paystack::ReconcilePlatform::REPORT_CACHE_KEY,
+          scope: :private
+        )
+        return { never_run: true } if report.blank?
+
+        summary = report["summary"] || report[:summary] || {}
+        {
+          never_run: false,
+          checked_at: report["checked_at"] || report[:checked_at],
+          findings_count: summary["findings_count"] || summary[:findings_count] || 0,
+          critical_count: summary["critical_count"] || summary[:critical_count] || 0,
+          warning_count: summary["warning_count"] || summary[:warning_count] || 0
+        }
       end
     end
   end
