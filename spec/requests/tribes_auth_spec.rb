@@ -124,6 +124,37 @@ RSpec.describe "Tribes JWT authentication", type: :request do
     end
   end
 
+  describe "POST /tribes/session/refresh" do
+    let(:sign_in_response) do
+      register_tribe(username: "refresh_tribe")
+      sign_in_tribe
+      response
+    end
+
+    it "issues a rotated bearer token without extending the password session window" do
+      headers = auth_header_from(sign_in_response)
+      tribe = Tribe.find_by!(username: "refresh_tribe")
+      tribe.update!(last_password_authenticated_at: 30.minutes.ago)
+
+      post "/tribes/session/refresh", headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(json["token"]).to be_present
+      expect(tribe.reload.last_password_authenticated_at).to be <= 30.minutes.ago + 1.second
+    end
+
+    it "revokes the previous bearer token after refresh" do
+      headers = auth_header_from(sign_in_response)
+      old_token = headers["Authorization"].delete_prefix("Bearer ")
+
+      post "/tribes/session/refresh", headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+
+      get "/me/profile", headers: { "Authorization" => "Bearer #{old_token}" }, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
   describe "DELETE /tribes/sign_out" do
     let(:sign_in_response) do
       register_tribe(username: "signout_tribe")
