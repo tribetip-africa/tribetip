@@ -86,4 +86,18 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     expect(body.dig("error", "code")).to eq("rate_limited")
     expect(body.dig("error", "message")).to match(/too many requests/i)
   end
+
+  it "rate limits repeated payout account number reveals for the same creator" do
+    Rack::Attack.reset!
+    tribe = create_onboarded_tribe(username: "account_number_throttle")
+    headers = bearer_token_for(tribe)
+    limit = ENV.fetch("RACK_ATTACK_ACCOUNT_NUMBER_REVEAL_LIMIT", 6).to_i
+
+    limit.times { get "/me/paystack/account_number", headers: headers, as: :json }
+    get "/me/paystack/account_number", headers: headers, as: :json
+
+    expect(response).to have_http_status(429)
+    body = JSON.parse(response.body)
+    expect(body.dig("error", "code")).to eq("rate_limited")
+  end
 end
