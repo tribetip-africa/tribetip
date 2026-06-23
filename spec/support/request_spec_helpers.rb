@@ -6,6 +6,7 @@ module RequestSpecHelpers
   end
 
   def bearer_token_for(tribe)
+    Tribetip::Security::RecordPasswordAuthentication.call(tribe)
     token, = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
     { "Authorization" => "Bearer #{token}" }
   end
