@@ -50,6 +50,34 @@ RSpec.describe Tribetip::Metrics::PlatformOverview do
     expect(overview[:published_profiles]).to be >= 1
     expect(overview[:onboarding_complete]).to be >= 1
     expect(overview[:payout_linked]).to be >= 1
+    expect(overview[:unresolved_payment_alerts]).to be_a(Integer)
+    expect(overview[:failed_webhooks]).to be_a(Integer)
+    expect(overview[:reconciliation][:never_run]).to be_in([ true, false ])
     expect(tribe).to be_present
+  end
+
+  it "includes reconciliation summary from cache when available" do
+    Tribetip::SecureCache.write(
+      Tribetip::Paystack::ReconcilePlatform::REPORT_CACHE_KEY,
+      {
+        checked_at: Time.current.iso8601,
+        summary: {
+          findings_count: 2,
+          critical_count: 1,
+          warning_count: 1
+        }
+      },
+      scope: :private,
+      ttl: 1.hour
+    )
+
+    overview = described_class.call
+
+    expect(overview[:reconciliation]).to include(
+      never_run: false,
+      findings_count: 2,
+      critical_count: 1,
+      warning_count: 1
+    )
   end
 end
