@@ -28,6 +28,7 @@ RSpec.describe "Creator widget embeds", type: :request do
     expect(embed.fetch("enabled")).to be(true)
     expect(embed.fetch("token")).to be_present
     expect(embed.fetch("embed_snippet")).to include("widget.js?token=")
+    expect(embed.fetch("embed_snippet")).to include(%(data-token="#{embed.fetch('token')}"))
     expect(embed.fetch("cta_text")).to eq("Support me")
     expect(tribe.reload.widget_enabled?).to be(true)
   end
