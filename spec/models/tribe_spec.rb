@@ -45,6 +45,21 @@ RSpec.describe Tribe, type: :model do
       expect(tribe).not_to be_valid
     end
 
+    it "rejects passwords shorter than the 8-character minimum" do
+      tribe.password = "1234567"
+      tribe.password_confirmation = "1234567"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:password]).to be_present
+    end
+
+    it "accepts passwords at the 8-character minimum" do
+      tribe.password = "12345678"
+      tribe.password_confirmation = "12345678"
+
+      expect(tribe).to be_valid
+    end
+
     it "normalizes username before validation" do
       tribe.username = " Tribe_Owner "
       tribe.validate
@@ -56,6 +71,42 @@ RSpec.describe Tribe, type: :model do
       tribe.username = nil
 
       expect(tribe).not_to be_valid
+    end
+
+    it "is invalid when the username is reserved" do
+      tribe.username = "dashboard"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:username]).to include("is reserved and cannot be used")
+    end
+
+    it "rejects reserved usernames that collide with frontend routes" do
+      %w[faq terms privacy api admin support].each do |reserved|
+        tribe.username = reserved
+
+        expect(tribe).not_to be_valid, "expected '#{reserved}' to be rejected"
+      end
+    end
+
+    it "rejects reserved usernames regardless of casing/whitespace" do
+      tribe.username = "  ADMIN "
+      tribe.validate
+
+      expect(tribe.username).to eq("admin")
+      expect(tribe.errors[:username]).to include("is reserved and cannot be used")
+    end
+
+    it "allows usernames that merely contain a reserved word" do
+      tribe.username = "admin123"
+
+      expect(tribe).to be_valid
+    end
+
+    it "does not re-validate the reserved list on saves that leave the username unchanged" do
+      tribe.save!
+      tribe.update_column(:username, "admin") # bypass validation to simulate a legacy record
+
+      expect(tribe.update(display_name: "Legacy Creator")).to be(true)
     end
 
     it "is invalid with an unsupported country code" do
@@ -80,6 +131,62 @@ RSpec.describe Tribe, type: :model do
       tribe.is_profile_public = true
 
       expect(tribe).not_to be_valid
+    end
+  end
+
+  describe "widget embed validations" do
+    subject(:tribe) do
+      described_class.new(
+        email: "widget@tribetip.africa",
+        password: "securepass123",
+        username: "widget_owner"
+      )
+    end
+
+    it "accepts an https destination URL" do
+      tribe.widget_destination_url = "https://example.com/tip"
+
+      expect(tribe).to be_valid
+    end
+
+    it "rejects a javascript: destination URL" do
+      tribe.widget_destination_url = "javascript:alert(1)"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:widget_destination_url]).to be_present
+    end
+
+    it "rejects a data: destination URL" do
+      tribe.widget_destination_url = "data:text/html,<script>alert(1)</script>"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:widget_destination_url]).to be_present
+    end
+
+    it "accepts an https icon URL" do
+      tribe.widget_icon_url = "https://cdn.example.com/avatar.png"
+
+      expect(tribe).to be_valid
+    end
+
+    it "rejects a javascript: icon URL" do
+      tribe.widget_icon_url = "javascript:alert(document.cookie)"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:widget_icon_url]).to be_present
+    end
+
+    it "rejects a data: icon URL" do
+      tribe.widget_icon_url = "data:image/svg+xml,<svg onload=alert(1)>"
+
+      expect(tribe).not_to be_valid
+      expect(tribe.errors[:widget_icon_url]).to be_present
+    end
+
+    it "allows a blank icon URL" do
+      tribe.widget_icon_url = nil
+
+      expect(tribe).to be_valid
     end
   end
 
