@@ -5,7 +5,7 @@ module Tribetip
     TOKEN_BYTES = 24
     TOKEN_PATTERN = /\A[A-Za-z0-9_-]{20,48}\z/
     POSITIONS = %w[bottom-right bottom-left top-right top-left].freeze
-    DEFAULT_ACCENT_COLOR = "#f5b942"
+    DEFAULT_ACCENT_COLOR = "#25d366"
     DEFAULT_CTA_TEXT = "Tip me"
     DEFAULT_POSITION = "bottom-right"
 
@@ -122,7 +122,9 @@ module Tribetip
 
       def embed_snippet(token, api_url: Tribetip::Platform.api_url)
         script_url = "#{Tribetip::Platform.app_url}/widget.js?token=#{token}"
-        %(<script src="#{script_url}" data-api="#{api_url}" async></script>)
+        # data-token is a fallback for platforms (e.g. tag managers, some site
+        # builders) that strip the query string or rewrite the script src.
+        %(<script src="#{script_url}" data-token="#{token}" data-api="#{api_url}" async></script>)
       end
 
       def cache_key_for(token)
