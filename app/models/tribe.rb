@@ -4,6 +4,17 @@ class Tribe < ApplicationRecord
   VALID_ACCOUNT_STATUSES = %w[pending active suspended].freeze
   VALID_ROLES = %w[creator admin].freeze
 
+  # Usernames that collide with frontend routes (e.g. /faq, /dashboard) or are
+  # otherwise sensitive. A creator must not register these because the static
+  # route would shadow their public page and/or invite impersonation.
+  # Kept in sync with frontend RESERVED_ROOT_SEGMENTS (src/lib/public-tip-path.ts).
+  RESERVED_USERNAMES = %w[
+    about account accounts admin administrator api app billing blog contact
+    creator creators dashboard faq ftp help legal login logout mail privacy
+    robots root security settings signin signup sign_in sign_up sitemap status
+    support terms tip tips tribe tribetip www
+  ].to_set.freeze
+
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable,
@@ -43,6 +54,7 @@ class Tribe < ApplicationRecord
                        format: { with: /\A[a-z0-9_]+\z/ },
                        length: { minimum: 3, maximum: 30 },
                        uniqueness: { case_sensitive: false }
+  validate :username_not_reserved, if: :username_changed?
   validates :display_name, presence: true, if: :is_profile_public?
   validates :bio, length: { maximum: 500 }, allow_blank: true
   validates :country_code, inclusion: { in: VALID_COUNTRY_CODES }
@@ -56,6 +68,7 @@ class Tribe < ApplicationRecord
   validates :widget_position, inclusion: { in: Tribetip::WidgetEmbed::POSITIONS }
   validates :widget_accent_color, format: { with: /\A#(?:[0-9a-fA-F]{3}){1,2}\z/ }
   validate :widget_destination_url_must_be_http_url, if: -> { widget_destination_url.present? }
+  validate :widget_icon_url_must_be_http_url, if: -> { widget_icon_url.present? }
   validate :email_acceptable_for_paystack, on: :create
   validate :admin_cannot_have_public_profile
 
@@ -125,6 +138,13 @@ class Tribe < ApplicationRecord
     self.username = username.to_s.strip.downcase.presence
   end
 
+  def username_not_reserved
+    return if username.blank?
+    return unless RESERVED_USERNAMES.include?(username)
+
+    errors.add(:username, "is reserved and cannot be used")
+  end
+
   def set_default_role
     self.role = "creator" if role.blank?
   end
@@ -180,12 +200,25 @@ class Tribe < ApplicationRecord
   end
 
   def widget_destination_url_must_be_http_url
-    uri = URI.parse(widget_destination_url.to_s)
-    return if uri.is_a?(URI::HTTP) && uri.host.present?
+    return if http_url?(widget_destination_url)
 
     errors.add(:widget_destination_url, "must be a valid http or https URL")
+  end
+
+  # Icon is rendered as an <img src> inside the embeddable widget on third-party
+  # sites; restrict it to http(s) so creator config can't smuggle javascript:,
+  # data:, or other schemes into the embedded markup.
+  def widget_icon_url_must_be_http_url
+    return if http_url?(widget_icon_url)
+
+    errors.add(:widget_icon_url, "must be a valid http or https URL")
+  end
+
+  def http_url?(value)
+    uri = URI.parse(value.to_s)
+    uri.is_a?(URI::HTTP) && uri.host.present?
   rescue URI::InvalidURIError
-    errors.add(:widget_destination_url, "must be a valid http or https URL")
+    false
   end
 
   def payout_cache_relevant_change?
