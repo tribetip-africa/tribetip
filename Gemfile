@@ -30,7 +30,7 @@ group :development, :test do
   gem "bundler-audit", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
-  gem "rubocop", "~> 1.87"
+  gem "rubocop", "~> 1.88"
   gem "rubocop-rspec", "~> 3.9"
 end
 
