@@ -107,6 +107,7 @@ API rate limits return `429` with `{ "error": { "code": "rate_limited" } }`. Thr
 | `POST /me/paystack/repair` | `account:{bearer_hash}` | fixed 6 / 5 min |
 | `POST /me/paystack/withdrawals` | `account:{bearer_hash}` | fixed 6 / 5 min |
 | `POST /tribes/sign_in` | per email + per IP | fixed 5/min email, 10/min IP |
+| `POST /tribes` with `referral_code` | `signup-referral:{ip}` | `RACK_ATTACK_SIGNUP_REFERRAL_LIMIT` (10/min) |
 | `POST /admin/tribes/:id/repair` | per IP | fixed 10 / 5 min |
 
 Implementation: `config/initializers/rack_attack.rb`, keys in `lib/tribetip/rack_attack_keys.rb`.

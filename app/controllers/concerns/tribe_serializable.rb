@@ -41,6 +41,7 @@ module TribeSerializable
       currency: tribe.currency,
       default_tip_amount_cents: tribe.default_tip_amount_cents,
       is_profile_public: tribe.is_profile_public,
+      referral_fee_credit_cents_remaining: tribe.referral_fee_credit_cents_remaining,
       metrics: metrics.as_json.merge(
         pending_settlement_cents: payout.pending_settlement_cents,
         subaccount_verified: payout.subaccount_verified

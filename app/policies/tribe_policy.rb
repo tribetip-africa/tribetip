@@ -57,6 +57,14 @@ class TribePolicy < ApplicationPolicy
     creator_only?(context)
   end
 
+  def access_referrals?
+    creator_only?(context)
+  end
+
+  def manage_referrals?
+    creator_only?(context)
+  end
+
   def access_notifications?
     creator_only?(context)
   end

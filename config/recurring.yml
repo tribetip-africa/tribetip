@@ -29,3 +29,7 @@ production:
     class: Paystack::ReconcilePlatformJob
     queue: default
     schedule: every 6 hours
+  reconcile_pending_referrals:
+    class: Referrals::ReconcilePendingJob
+    queue: default
+    schedule: every hour at minute 15

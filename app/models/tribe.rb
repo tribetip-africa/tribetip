@@ -46,6 +46,15 @@ class Tribe < ApplicationRecord
   after_commit :purge_payout_status_cache, on: :update
   after_create :enqueue_paystack_customer_provision
 
+  belongs_to :referrer, class_name: "Tribe", optional: true
+  has_many :referred_creators, class_name: "Tribe", foreign_key: :referred_by_id, dependent: :nullify,
+                               inverse_of: :referrer
+  has_many :referrals_given, class_name: "Referral", foreign_key: :referrer_id, dependent: :destroy,
+                             inverse_of: :referrer
+  has_many :referrals_received, class_name: "Referral", foreign_key: :referred_id, dependent: :destroy,
+                                  inverse_of: :referred
+  has_many :referral_invites, foreign_key: :referrer_id, dependent: :destroy, inverse_of: :referrer
+
   has_many :tips, dependent: :destroy
   has_many :paystack_settlements, dependent: :destroy
   has_many :creator_notifications, dependent: :destroy
@@ -71,6 +80,7 @@ class Tribe < ApplicationRecord
   validate :widget_icon_url_must_be_http_url, if: -> { widget_icon_url.present? }
   validate :email_acceptable_for_paystack, on: :create
   validate :admin_cannot_have_public_profile
+  validates :referral_fee_credit_cents_remaining, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   PAYSTACK_REJECTED_EMAIL_SUFFIXES = %w[.local .localhost .invalid .test .example].freeze
 

@@ -49,11 +49,13 @@ module Tribetip
         net_cents = @settlement.amount_cents
         gross_cents = tip&.amount_cents
         fee_cents = gross_cents ? PlatformFee.fee_cents(gross_cents, net_cents: net_cents) : nil
+        credit_applied = tip&.paystack_metadata&.fetch("referral_fee_credit_applied_cents", nil)&.to_i
 
         {
           gross_cents: gross_cents,
           platform_fee_cents: fee_cents,
           platform_fee_percent: PlatformFee.percent,
+          referral_fee_credit_applied_cents: credit_applied&.positive? ? credit_applied : nil,
           net_cents: net_cents,
           currency: @settlement.currency
         }.compact

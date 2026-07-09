@@ -1,7 +1,13 @@
 # frozen_string_literal: true
 
 class CreatorNotification < ApplicationRecord
-  KINDS = %w[settlement_paid settlement_failed].freeze
+  KINDS = %w[
+    settlement_paid
+    settlement_failed
+    referral_qualified
+    referral_welcome_bonus
+    referral_bonus_paid
+  ].freeze
 
   belongs_to :tribe
 

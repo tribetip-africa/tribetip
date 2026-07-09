@@ -9,12 +9,20 @@ module Tribes
 
     def create
       apply_http_cache_policy(:no_store)
-      build_resource(sign_up_params)
+      signup_attributes = sign_up_params
+      referral_code = signup_attributes.delete(:referral_code)
+      build_resource(signup_attributes)
       resource.role = "creator"
       resource.skip_confirmation! unless Tribetip::Security.require_email_confirmation?
       resource.save
 
       if resource.persisted?
+        Tribetip::Referrals::AttachOnSignup.call(
+          referred: resource,
+          referral_code: referral_code,
+          signup_ip: request.remote_ip
+        )
+
         message = if resource.confirmed?
           "Signed up successfully."
         else
@@ -62,7 +70,8 @@ module Tribes
         :username,
         :display_name,
         :country_code,
-        :currency
+        :currency,
+        :referral_code
       )
     end
   end
