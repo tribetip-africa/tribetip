@@ -10,22 +10,24 @@ RSpec.describe "Creator referrals", type: :request do
 
     expect(response).to have_http_status(:ok)
     payload = json.fetch("referrals")
-    expect(payload.fetch("can_refer")).to be(true)
     link = payload.fetch("link")
-    expect(link.fetch("kind")).to eq("invite")
-    expect(link.fetch("code")).to be_present
-    expect(link.fetch("code")).not_to eq("referral_dashboard")
-    expect(link.fetch("username_code")).to eq("referral_dashboard")
-    expect(link.fetch("path")).to eq("/sign-up?ref=#{link.fetch("code")}")
-    expect(link.fetch("url")).to include("/sign-up?ref=#{link.fetch("code")}")
-    expect(link.fetch("expires_at")).to be_present
-    expect(payload.fetch("stats")).to include(
-      "pending" => 0,
-      "qualified" => 0,
-      "rewarded" => 0,
-      "total" => 0
-    )
-    expect(payload.fetch("entries")).to eq([])
+    aggregate_failures do
+      expect(payload.fetch("can_refer")).to be(true)
+      expect(link.fetch("kind")).to eq("invite")
+      expect(link.fetch("code")).to be_present
+      expect(link.fetch("code")).not_to eq("referral_dashboard")
+      expect(link.fetch("username_code")).to eq("referral_dashboard")
+      expect(link.fetch("path")).to eq("/sign-up?ref=#{link.fetch("code")}")
+      expect(link.fetch("url")).to include("/sign-up?ref=#{link.fetch("code")}")
+      expect(link.fetch("expires_at")).to be_present
+      expect(payload.fetch("stats")).to include(
+        "pending" => 0,
+        "qualified" => 0,
+        "rewarded" => 0,
+        "total" => 0
+      )
+      expect(payload.fetch("entries")).to eq([])
+    end
   end
 
   it "lists referred creators for the referrer" do
