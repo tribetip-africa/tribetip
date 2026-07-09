@@ -12,6 +12,7 @@ module Tribetip
           .merge(tip_counts)
           .merge(payout_counts)
           .merge(recent_tip_counts)
+          .merge(referral_counts)
           .merge(ops_counts)
       end
 
@@ -54,6 +55,19 @@ module Tribetip
         {
           tips_last_30_days: recent.count,
           volume_last_30_days_cents: volume_by_currency(recent)
+        }
+      end
+
+      def referral_counts
+        counts = Referral.group(:status).count
+        rewarded = Referral.rewarded.where.not(referrer_bonus_cents: nil)
+
+        {
+          referrals_pending: counts.fetch("pending", 0),
+          referrals_qualified: counts.fetch("qualified", 0),
+          referrals_rewarded: counts.fetch("rewarded", 0),
+          referrals_rejected: counts.fetch("rejected", 0),
+          referral_bonus_paid_cents: rewarded.group(:referrer_bonus_currency).sum(:referrer_bonus_cents)
         }
       end
 

@@ -61,6 +61,17 @@ RSpec.describe "Tribes JWT authentication", type: :request do
 
       expect(response.headers["Cache-Control"]).to include("no-store")
     end
+
+    it "attaches a referral when referral_code matches an eligible creator" do
+      referrer = create_creator(username: "signup_referrer")
+
+      register_tribe(username: "signup_referred", referral_code: referrer.username)
+
+      expect(response).to have_http_status(:created)
+      referred = Tribe.find_by!(username: "signup_referred")
+      expect(referred.referred_by_id).to eq(referrer.id)
+      expect(Referral.find_by!(referred: referred).referrer).to eq(referrer)
+    end
   end
 
   describe "POST /tribes/sign_in" do

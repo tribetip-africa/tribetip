@@ -14,6 +14,8 @@ module Tribetip
     ACCOUNT_NUMBER_REVEAL_PATH = "/me/paystack/account_number"
     SESSION_REFRESH_PATH = "/tribes/session/refresh"
 
+    SIGN_UP_PATH = "/tribes"
+
     module_function
 
     def normalize(path)
@@ -50,6 +52,10 @@ module Tribetip
 
     def session_refresh_path?(request)
       request.post? && normalize(request.path) == SESSION_REFRESH_PATH
+    end
+
+    def sign_up_path?(request)
+      request.post? && normalize(request.path) == SIGN_UP_PATH
     end
   end
 end

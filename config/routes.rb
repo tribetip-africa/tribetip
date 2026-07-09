@@ -33,6 +33,10 @@ Rails.application.routes.draw do
       post :rotate
     end
 
+    resource :referrals, only: %i[show update], controller: "referrals" do
+      post "invite/rotate", on: :member, action: :rotate_invite
+    end
+
     resource :widget_embed, only: %i[show update], controller: "widget_embeds" do
       post :rotate
     end
@@ -79,6 +83,8 @@ Rails.application.routes.draw do
     get "paystack/reconciliation", to: "paystack/reconciliations#show"
     post "paystack/reconciliation", to: "paystack/reconciliations#create"
     get "tips/:paystack_reference/investigate", to: "tips#investigate"
+    get "referrals", to: "referrals#index"
+    patch "referrals/:id/reject", to: "referrals#reject"
   end
 
   # Defines the root path route ("/")

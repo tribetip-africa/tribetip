@@ -62,6 +62,15 @@ module Tribetip
       "account:#{Digest::SHA256.hexdigest(token)[0, 16]}"
     end
 
+    def signup_referral(req)
+      return unless Tribetip::RackAttackPaths.sign_up_path?(req)
+
+      code = request_params(req).dig("tribe", "referral_code").to_s.strip
+      return if code.blank?
+
+      "signup-referral:#{req.ip}"
+    end
+
     def request_params(req)
       ActionDispatch::Request.new(req.env).params
     rescue StandardError

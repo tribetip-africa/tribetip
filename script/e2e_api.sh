@@ -153,6 +153,42 @@ if [[ -n "$NEW_CREATOR_TOKEN" ]]; then
     -H "Authorization: Bearer ${NEW_CREATOR_TOKEN}"
 fi
 
+section "Referrals (/me/referrals)"
+if [[ -n "$CREATOR_TOKEN" ]]; then
+  request GET /me/referrals 200 "Get referrals summary" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}"
+
+  REFERRALS_BODY="$TMPDIR/referrals-summary.json"
+  curl -sS -o "$REFERRALS_BODY" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}" \
+    -H "Accept: application/json" \
+    "${API}/me/referrals"
+  REFERRALS_ENABLED="$(ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0])).dig("referrals","referrals_enabled")' "$REFERRALS_BODY" 2>/dev/null || true)"
+
+  if [[ "$REFERRALS_ENABLED" == "true" ]]; then
+    request POST /me/referrals/invite/rotate 200 "Rotate referral invite when enabled" \
+      -H "Authorization: Bearer ${CREATOR_TOKEN}"
+  else
+    skip "Rotate referral invite when enabled" "referrals disabled for this creator"
+  fi
+
+  request PATCH /me/referrals 200 "Disable referrals for creator" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}" \
+    -d '{"referrals":{"referrals_enabled":false}}'
+
+  request POST /me/referrals/invite/rotate 422 "Rotate blocked when referrals disabled" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}"
+
+  request PATCH /me/referrals 200 "Enable referrals for creator" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}" \
+    -d '{"referrals":{"referrals_enabled":true}}'
+
+  request GET /me/referrals 200 "Referrals summary after re-enable" \
+    -H "Authorization: Bearer ${CREATOR_TOKEN}"
+else
+  skip "Referrals checks" "no creator token available"
+fi
+
 section "Creator tips (/me/tips)"
 if [[ -n "$CREATOR_TOKEN" ]]; then
   request GET /me/tips 200 "List creator tips" \

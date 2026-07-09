@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_09_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -120,6 +120,41 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
     t.index ["tribe_id"], name: "index_paystack_settlements_on_tribe_id"
   end
 
+  create_table "referral_invites", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "referrer_id", null: false
+    t.string "code", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_referral_invites_on_code", unique: true
+    t.index ["referrer_id", "revoked_at", "expires_at"], name: "idx_on_referrer_id_revoked_at_expires_at_2e83356754"
+    t.index ["referrer_id"], name: "index_referral_invites_on_referrer_id"
+  end
+
+  create_table "referrals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "referrer_id", null: false
+    t.uuid "referred_id", null: false
+    t.string "status", default: "pending", null: false
+    t.string "referral_code_used", null: false
+    t.datetime "qualified_at"
+    t.datetime "rewarded_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "qualifying_tip_id"
+    t.integer "referrer_bonus_cents"
+    t.string "referrer_bonus_currency"
+    t.string "referrer_bonus_reference"
+    t.string "referrer_bonus_transfer_code"
+    t.index ["qualifying_tip_id"], name: "index_referrals_on_qualifying_tip_id"
+    t.index ["referred_id"], name: "index_referrals_on_referred_id", unique: true
+    t.index ["referrer_bonus_reference"], name: "index_referrals_on_referrer_bonus_reference", unique: true, where: "(referrer_bonus_reference IS NOT NULL)"
+    t.index ["referrer_id", "status"], name: "index_referrals_on_referrer_id_and_status"
+    t.index ["referrer_id"], name: "index_referrals_on_referrer_id"
+    t.index ["status", "created_at"], name: "index_referrals_on_status_and_created_at"
+  end
+
   create_table "tip_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "tip_id", null: false
     t.uuid "paystack_event_id"
@@ -225,6 +260,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
     t.string "widget_cta_text", default: "Tip me", null: false
     t.boolean "widget_open_same_tab", default: false, null: false
     t.datetime "last_password_authenticated_at"
+    t.uuid "referred_by_id"
+    t.integer "referral_fee_credit_cents_remaining", default: 0, null: false
+    t.boolean "referrals_enabled", default: true, null: false
     t.index ["account_status"], name: "index_tribes_on_account_status"
     t.index ["confirmation_token"], name: "index_tribes_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_tribes_on_confirmed_at", where: "(confirmed_at IS NOT NULL)"
@@ -234,6 +272,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
     t.index ["last_password_authenticated_at"], name: "index_tribes_on_last_password_authenticated_at"
     t.index ["paystack_customer_code"], name: "index_tribes_on_paystack_customer_code", unique: true, where: "(paystack_customer_code IS NOT NULL)"
     t.index ["paystack_subaccount_code"], name: "index_tribes_on_paystack_subaccount_code", unique: true, where: "(paystack_subaccount_code IS NOT NULL)"
+    t.index ["referred_by_id"], name: "index_tribes_on_referred_by_id"
     t.index ["reset_password_token"], name: "index_tribes_on_reset_password_token", unique: true
     t.index ["role"], name: "index_tribes_on_role"
     t.index ["tip_share_token"], name: "index_tribes_on_tip_share_token", unique: true, where: "(tip_share_token IS NOT NULL)"
@@ -264,5 +303,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
   add_foreign_key "paystack_settlements", "paystack_events"
   add_foreign_key "paystack_settlements", "tips"
   add_foreign_key "paystack_settlements", "tribes"
+  add_foreign_key "referral_invites", "tribes", column: "referrer_id"
+  add_foreign_key "referrals", "tips", column: "qualifying_tip_id"
+  add_foreign_key "referrals", "tribes", column: "referred_id"
+  add_foreign_key "referrals", "tribes", column: "referrer_id"
   add_foreign_key "tips", "tribes"
+  add_foreign_key "tribes", "tribes", column: "referred_by_id"
 end

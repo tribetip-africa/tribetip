@@ -100,4 +100,34 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     body = JSON.parse(response.body)
     expect(body.dig("error", "code")).to eq("rate_limited")
   end
+
+  it "rate limits repeated sign-ups with a referral code from the same IP" do
+    Rack::Attack.reset!
+    create_creator(username: "signup_ref_target")
+    limit = ENV.fetch("RACK_ATTACK_SIGNUP_REFERRAL_LIMIT", 10).to_i
+
+    limit.times do |index|
+      post "/tribes.json", params: {
+        tribe: {
+          email: "referral-signup-#{index}@tribetip.africa",
+          password: "securepass123",
+          password_confirmation: "securepass123",
+          username: "ref_signup_#{index}",
+          referral_code: "signup_ref_target"
+        }
+      }, as: :json
+    end
+
+    post "/tribes.json", params: {
+      tribe: {
+        email: "referral-signup-overflow@tribetip.africa",
+        password: "securepass123",
+        password_confirmation: "securepass123",
+        username: "ref_signup_overflow",
+        referral_code: "signup_ref_target"
+      }
+    }, as: :json
+
+    expect(response).to have_http_status(429)
+  end
 end

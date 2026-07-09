@@ -88,6 +88,14 @@ class Rack::Attack
     Tribetip::RackAttackKeys.bearer_account(req) if Tribetip::RackAttackPaths.session_refresh_path?(req)
   end
 
+  throttle(
+    "signup_referral/ip",
+    limit: ENV.fetch("RACK_ATTACK_SIGNUP_REFERRAL_LIMIT", 10).to_i,
+    period: 60.seconds
+  ) do |req|
+    Tribetip::RackAttackKeys.signup_referral(req)
+  end
+
   self.throttled_responder = lambda do |_request|
     tribetip_error = Tribetip::Errors::RateLimit.new
     [

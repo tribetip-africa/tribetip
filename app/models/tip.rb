@@ -22,6 +22,8 @@ class Tip < ApplicationRecord
   }
   scope :recent_first, -> { order(created_at: :desc) }
 
+  after_commit :enqueue_referral_processing, on: :update
+
   def pending?
     status == "pending"
   end
@@ -92,6 +94,13 @@ class Tip < ApplicationRecord
   end
 
   private
+
+  def enqueue_referral_processing
+    return unless saved_change_to_status? && paid?
+    return unless Tribetip::Referrals::Config.enabled?
+
+    ::Referrals::ProcessPaidTipJob.perform_later(tip_id: id)
+  end
 
   def record_status_event(**kwargs)
     Tribetip::Audit::RecordTipEvent.call(tip: self, **kwargs)
