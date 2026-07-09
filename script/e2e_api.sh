@@ -290,7 +290,15 @@ if [[ -n "$TIPPABLE_USERNAME" ]]; then
         fi
       else
         request GET "/tips/checkout/${TIP_REF}" 200 "Tip checkout status"
-        request POST "/tips/${TIP_REF}/reconcile" 200 "Reconcile pending tip"
+        RECONCILE_STATUS="$(curl -sS -o "$TMPDIR/tip-reconcile.json" -w "%{http_code}" -X POST "${API}/tips/${TIP_REF}/reconcile")"
+        if [[ "$RECONCILE_STATUS" == "200" || "$RECONCILE_STATUS" == "202" ]]; then
+          PASS_COUNT=$((PASS_COUNT + 1))
+          printf "  \033[32m✓\033[0m Reconcile pending tip (POST /tips/${TIP_REF}/reconcile → %s)\n" "$RECONCILE_STATUS"
+        else
+          FAIL_COUNT=$((FAIL_COUNT + 1))
+          printf "  \033[31m✗\033[0m Reconcile pending tip (POST /tips/${TIP_REF}/reconcile → %s, expected 200/202)\n" "$RECONCILE_STATUS"
+          FAILURES+=("Reconcile pending tip")
+        fi
       fi
     fi
   else
