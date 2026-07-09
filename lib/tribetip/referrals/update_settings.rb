@@ -31,7 +31,7 @@ module Tribetip
       private
 
       def cast_enabled_flag!(value)
-        unless [true, false].include?(value) || value.is_a?(String) || value.is_a?(Numeric)
+        unless [ true, false ].include?(value) || value.is_a?(String) || value.is_a?(Numeric)
           raise ArgumentError, "referrals_enabled must be true or false"
         end
 
