@@ -11,7 +11,7 @@ class Tribe < ApplicationRecord
   RESERVED_USERNAMES = %w[
     about account accounts admin administrator api app billing blog contact
     creator creators dashboard faq ftp help legal login logout mail privacy
-    robots root security settings signin signup sign_in sign_up sitemap status
+    robots root security settings signin signup sign_in sign_up sitemap llms status
     support terms tip tips tribe tribetip www
   ].to_set.freeze
 
