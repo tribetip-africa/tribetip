@@ -38,6 +38,6 @@ RSpec.describe "Sitemap creators", type: :request do
     get "/sitemap/creators"
 
     usernames = json.fetch("creators").pluck("username")
-    expect(usernames).to eq(["active_creator"])
+    expect(usernames).to eq([ "active_creator" ])
   end
 end
