@@ -18,6 +18,8 @@ require "action_cable/engine"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+require_relative "../lib/tribetip/middleware/inject_jwt_from_cookie"
+
 module Tribetip
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -41,6 +43,8 @@ module Tribetip
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use Tribetip::Middleware::InjectJwtFromCookie
     config.middleware.use Rack::Attack
 
     # Ensure new models/migrations use UUID keys by default.

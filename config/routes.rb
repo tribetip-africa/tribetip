@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
   get "regions", to: "regions#index"
+  get "sitemap/creators", to: "sitemap_creators#index"
 
   get "tribes/:username", to: "public_profiles#show",
                           constraints: { username: /[a-z0-9_]+/ },
