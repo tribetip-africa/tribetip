@@ -4,16 +4,26 @@ module AuthenticatedTribe
   extend ActiveSupport::Concern
 
   included do
-    prepend_before_action :enforce_tribe_not_suspended, if: :bearer_token_provided?
+    prepend_before_action :enforce_tribe_not_suspended, if: :auth_token_provided?
   end
 
   private
 
-  def bearer_token_provided?
-    bearer_token.present?
+  def auth_token_provided?
+    auth_token.present?
   end
 
+  alias bearer_token_provided? auth_token_provided?
+
   def bearer_token
+    auth_token
+  end
+
+  def auth_token
+    bearer_token_from_header || Tribetip::Security::AuthCookie.read(cookies)
+  end
+
+  def bearer_token_from_header
     authorization = request.headers["Authorization"]
     return if authorization.blank?
     return unless authorization.start_with?("Bearer ")
@@ -33,7 +43,7 @@ module AuthenticatedTribe
   end
 
   def decode_tribe_from_bearer_token
-    payload = Warden::JWTAuth::TokenDecoder.new.call(bearer_token)
+    payload = Warden::JWTAuth::TokenDecoder.new.call(auth_token)
     return unless payload["scp"] == "tribe"
 
     Tribe.find_by(id: payload["sub"])
