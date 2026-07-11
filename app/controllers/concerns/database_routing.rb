@@ -32,6 +32,7 @@ module DatabaseRouting
 
   def authenticated_api_request?
     return true if request.path.start_with?("/me/")
+    return true if Tribetip::Security::AuthCookie.read(request.cookies).present?
 
     authorization = request.headers["Authorization"]
     authorization.present? && authorization.start_with?("Bearer ")
