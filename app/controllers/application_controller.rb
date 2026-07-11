@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::API
+  include ActionController::Cookies
   include Devise::Controllers::Helpers
   include DatabaseRouting
   include SecureHttpCaching
@@ -7,6 +8,7 @@ class ApplicationController < ActionController::API
   include TribeSerializable
   include AuthenticatedTribe
   include Authorization
+  include CsrfProtection
 
   before_action :set_paper_trail_whodunnit
 
