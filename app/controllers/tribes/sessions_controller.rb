@@ -5,6 +5,7 @@ module Tribes
     include Tribetip::Errors::Handler
     include TribeSerializable
     include AuthenticatedTribe
+    include SetsAuthCookie
 
     respond_to :json
 
@@ -17,7 +18,7 @@ module Tribes
       tribe = current_tribe
       return render_error(Tribetip::Errors::Authentication.new) unless tribe
 
-      Tribetip::Security::RevokeBearerToken.call(bearer_token)
+      Tribetip::Security::RevokeBearerToken.call(auth_token) if auth_token.present?
       render json: tribe_payload(tribe), status: :ok
     end
 
@@ -78,6 +79,8 @@ module Tribes
 
     def respond_to_on_destroy(_opts = {})
       apply_http_cache_policy(:no_store)
+      clear_auth_cookies! if Tribetip::Security::AuthCookie.enabled?
+
       if current_tribe
         render json: { message: "Signed out successfully." }, status: :ok
       else
@@ -87,12 +90,15 @@ module Tribes
 
     def tribe_payload(tribe)
       token, _payload = Warden::JWTAuth::UserEncoder.new.call(tribe, :tribe, nil)
+      csrf_token = issue_auth_cookies!(token) if Tribetip::Security::AuthCookie.enabled?
 
-      {
+      payload = {
         message: "Signed in successfully.",
         token: token,
         tribe: tribe_json(tribe)
       }
+      payload[:csrf_token] = csrf_token if csrf_token.present?
+      payload
     end
   end
 end
