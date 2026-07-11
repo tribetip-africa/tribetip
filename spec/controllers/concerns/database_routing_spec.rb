@@ -24,7 +24,8 @@ RSpec.describe DatabaseRouting, type: :controller do
           put?: false,
           patch?: false,
           delete?: false,
-          headers: {}
+          headers: {},
+          cookies: {}
         )
       )
 
@@ -41,11 +42,30 @@ RSpec.describe DatabaseRouting, type: :controller do
           put?: false,
           patch?: false,
           delete?: false,
-          headers: {}
+          headers: {},
+          cookies: {}
         )
       )
 
       expect(controller.send(:force_primary_connection?)).to be(false)
+    end
+
+    it "routes cookie-authenticated requests to the primary" do
+      allow(controller).to receive(:request).and_return(
+        instance_double(
+          ActionDispatch::Request,
+          path: "/regions",
+          get?: true,
+          post?: false,
+          put?: false,
+          patch?: false,
+          delete?: false,
+          headers: {},
+          cookies: { Tribetip::Security::AuthCookie::JWT_COOKIE => "jwt.token.here" }
+        )
+      )
+
+      expect(controller.send(:force_primary_connection?)).to be(true)
     end
   end
 end
