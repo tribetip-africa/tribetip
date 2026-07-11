@@ -2,6 +2,9 @@
 require "rubygems"
 require "bundler/setup"
 
-ARGV.unshift("--ensure-latest")
+# --ensure-latest crashes when Rubygems is unreachable (e.g. act offline / airgapped CI).
+unless ENV.fetch("BRAKEMAN_SKIP_ENSURE_LATEST", "") == "1"
+  ARGV.unshift("--ensure-latest")
+end
 
 load Gem.bin_path("brakeman", "brakeman")
