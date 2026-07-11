@@ -7,12 +7,12 @@ module Tribetip
 
     class << self
       def list(page:, per_page:)
-        page = [page.to_i, 1].max
+        page = [ page.to_i, 1 ].max
         per_page = per_page.to_i.clamp(1, PER_PAGE_MAX)
         scope = shareable_scope
         total_count = scope.count
-        total_pages = [(total_count.to_f / per_page).ceil, 1].max
-        page = [page, total_pages].min
+        total_pages = [ (total_count.to_f / per_page).ceil, 1 ].max
+        page = [ page, total_pages ].min
 
         creators = scope
                    .order(updated_at: :desc, username: :asc)
