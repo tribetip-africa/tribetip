@@ -14,6 +14,9 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "regions", to: "regions#index"
   get "sitemap/creators", to: "sitemap_creators#index"
+  get "early_access/:token", to: "early_access_invites#show",
+                             constraints: { token: /[A-Za-z0-9_-]{20,48}/ },
+                             as: :early_access_invite
 
   get "tribes/:username", to: "public_profiles#show",
                           constraints: { username: /[a-z0-9_]+/ },
@@ -86,6 +89,9 @@ Rails.application.routes.draw do
     get "tips/:paystack_reference/investigate", to: "tips#investigate"
     get "referrals", to: "referrals#index"
     patch "referrals/:id/reject", to: "referrals#reject"
+    get "early_access_invites", to: "early_access_invites#index"
+    post "early_access_invites", to: "early_access_invites#create"
+    patch "early_access_invites/:id/revoke", to: "early_access_invites#revoke"
   end
 
   # Defines the root path route ("/")
