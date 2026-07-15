@@ -71,6 +71,23 @@ module Tribetip
       "signup-referral:#{req.ip}"
     end
 
+    def early_access_lookup(req)
+      match = req.path.match(Tribetip::RackAttackPaths::EARLY_ACCESS_PATTERN)
+      return unless match
+
+      token = match[1]
+      "early-access:#{req.ip}:#{token}"
+    end
+
+    def signup_early_access(req)
+      return unless Tribetip::RackAttackPaths.sign_up_path?(req)
+
+      token = request_params(req).dig("tribe", "early_access_token").to_s.strip
+      return if token.blank?
+
+      "signup-early-access:#{req.ip}"
+    end
+
     def request_params(req)
       ActionDispatch::Request.new(req.env).params
     rescue StandardError
