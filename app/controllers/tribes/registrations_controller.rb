@@ -10,7 +10,6 @@ module Tribes
     def create
       apply_http_cache_policy(:no_store)
       signup_attributes = sign_up_params
-      referral_code = signup_attributes.delete(:referral_code)
       early_access_token = signup_attributes.delete(:early_access_token)
 
       invite = Tribetip::EarlyAccess::AttachOnSignup.call(
@@ -26,12 +25,6 @@ module Tribes
         resource.save!
         invite&.burn!(tribe: resource)
       end
-
-      Tribetip::Referrals::AttachOnSignup.call(
-        referred: resource,
-        referral_code: referral_code,
-        signup_ip: request.remote_ip
-      )
 
       message = if resource.confirmed?
         "Signed up successfully."
@@ -80,7 +73,6 @@ module Tribes
         :display_name,
         :country_code,
         :currency,
-        :referral_code,
         :early_access_token
       )
     end

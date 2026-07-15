@@ -89,7 +89,7 @@ class Rack::Attack
   end
 
   throttle(
-    "signup_referral/ip",
+    "onboarding_referral/ip",
     limit: ENV.fetch("RACK_ATTACK_SIGNUP_REFERRAL_LIMIT", 10).to_i,
     period: 60.seconds
   ) do |req|

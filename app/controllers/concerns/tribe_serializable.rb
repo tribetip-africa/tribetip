@@ -12,6 +12,7 @@ module TribeSerializable
       username: tribe.username,
       role: tribe.role,
       account_status: tribe.account_status,
+      referral_attached: tribe.referred_by_id.present?,
       paystack_onboarding: paystack_onboarding_json(tribe)
     }
   end

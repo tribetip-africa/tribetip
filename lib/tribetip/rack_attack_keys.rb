@@ -63,12 +63,12 @@ module Tribetip
     end
 
     def signup_referral(req)
-      return unless Tribetip::RackAttackPaths.sign_up_path?(req)
+      return unless Tribetip::RackAttackPaths.paystack_onboarding_path?(req)
 
-      code = request_params(req).dig("tribe", "referral_code").to_s.strip
+      code = request_params(req).dig("onboarding", "referral_code").to_s.strip
       return if code.blank?
 
-      "signup-referral:#{req.ip}"
+      "onboarding-referral:#{req.ip}"
     end
 
     def early_access_lookup(req)

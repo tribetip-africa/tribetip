@@ -12,14 +12,15 @@ module Tribetip
 
       module_function
 
-      def attach_blocked?(referrer:, signup_ip:)
-        attach_block_reason(referrer: referrer, signup_ip: signup_ip).present?
+      def attach_blocked?(referrer:, attach_ip: nil, signup_ip: nil)
+        attach_block_reason(referrer: referrer, attach_ip: attach_ip, signup_ip: signup_ip).present?
       end
 
-      def attach_block_reason(referrer:, signup_ip:)
+      def attach_block_reason(referrer:, attach_ip: nil, signup_ip: nil)
+        ip = attach_ip.presence || signup_ip
         return "referrer_ineligible" unless Referrals.eligible_referrer?(referrer)
         return "referrer_at_capacity" if referrer_at_capacity?(referrer)
-        return "same_ip_signup" if same_ip_signup?(referrer, signup_ip)
+        return "same_ip_signup" if same_ip_signup?(referrer, ip)
 
         nil
       end
@@ -30,7 +31,7 @@ module Tribetip
         return "referrer_ineligible" unless Referrals.eligible_referrer?(referrer)
         return "same_ip_signup" if same_ip_signup?(
           referrer,
-          referral.metadata["signup_ip"]
+          referral.metadata["attach_ip"].presence || referral.metadata["signup_ip"]
         )
 
         nil

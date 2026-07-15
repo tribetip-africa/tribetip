@@ -116,6 +116,39 @@ RSpec.describe "Paystack onboarding", type: :request do
       expect(tribe.reload.paystack_subaccount_code).to be_present
     end
 
+    it "attaches a referral when referral_code matches an eligible creator" do
+      referrer = create_creator(username: "onboard_referrer")
+      tribe = tribe_without_subaccount(username: "onboard_with_ref")
+
+      post_onboarding(
+        tribe,
+        settlement_bank: "057",
+        account_number: "0123456789",
+        business_name: "Onboard Creator",
+        referral_code: referrer.username
+      )
+
+      expect(response).to have_http_status(:ok)
+      expect(json.dig("tribe", "referral_attached")).to be(true)
+      expect(tribe.reload.referred_by_id).to eq(referrer.id)
+      expect(Referral.find_by!(referred: tribe).referrer).to eq(referrer)
+    end
+
+    it "still completes onboarding when referral_code is invalid" do
+      tribe = tribe_without_subaccount(username: "onboard_bad_ref")
+
+      post_onboarding(
+        tribe,
+        settlement_bank: "057",
+        account_number: "0123456789",
+        referral_code: "not_a_real_referrer"
+      )
+
+      expect(response).to have_http_status(:ok)
+      expect(json.dig("onboarding", "complete")).to be(true)
+      expect(tribe.reload.referred_by_id).to be_nil
+    end
+
     it "rejects idempotency key reuse with a different payload" do
       tribe = tribe_without_subaccount(username: "onboard_idem_payload")
       headers = bearer_token_for(tribe).merge("Idempotency-Key" => "onboarding-payload-key")

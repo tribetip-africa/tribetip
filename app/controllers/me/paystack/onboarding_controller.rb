@@ -45,6 +45,13 @@ module Me
           return render_error(Tribetip::Errors::BadRequest.new(message))
         end
 
+        # Soft-fail: invalid/blank/already-attached codes never block payout setup.
+        Tribetip::Referrals::Attach.call(
+          referred: current_tribe.reload,
+          referral_code: onboarding_params[:referral_code],
+          attach_ip: request.remote_ip
+        )
+
         market = current_tribe.paystack_market
         status = Tribetip::Paystack::SyncOnboarding.call(current_tribe.reload)
         body = {
@@ -68,7 +75,12 @@ module Me
       private
 
       def onboarding_params
-        params.require(:onboarding).permit(:settlement_bank, :account_number, :business_name)
+        params.require(:onboarding).permit(
+          :settlement_bank,
+          :account_number,
+          :business_name,
+          :referral_code
+        )
       end
 
       def provision_customer_if_needed!

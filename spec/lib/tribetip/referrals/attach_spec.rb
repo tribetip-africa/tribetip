@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Tribetip::Referrals::AttachOnSignup do
+RSpec.describe Tribetip::Referrals::Attach do
   it "creates a referral when the code matches an eligible referrer" do
     referrer = create_creator(username: "eligible_referrer")
     referred = create_tribe(username: "new_referred")
@@ -64,7 +64,7 @@ RSpec.describe Tribetip::Referrals::AttachOnSignup do
     expect(referred.reload.referred_by_id).to eq(referrer.id)
   end
 
-  it "does not attach when signup IP matches the referrer IP" do
+  it "does not attach when attach IP matches the referrer IP" do
     referrer = create_creator(username: "same_ip_referrer")
     referrer.update!(current_sign_in_ip: "198.51.100.20")
     referred = create_tribe(username: "same_ip_referred")
@@ -72,11 +72,26 @@ RSpec.describe Tribetip::Referrals::AttachOnSignup do
     described_class.call(
       referred: referred,
       referral_code: referrer.username,
-      signup_ip: "198.51.100.20"
+      attach_ip: "198.51.100.20"
     )
 
     expect(Referral.where(referred: referred)).to be_empty
     expect(referred.reload.referred_by_id).to be_nil
+  end
+
+  it "stores attach_ip in referral metadata" do
+    referrer = create_creator(username: "ip_meta_referrer")
+    referred = create_tribe(username: "ip_meta_referred")
+
+    described_class.call(
+      referred: referred,
+      referral_code: referrer.username,
+      attach_ip: "203.0.113.10"
+    )
+
+    referral = Referral.find_by!(referred: referred)
+    expect(referral.metadata["attach_ip"]).to eq("203.0.113.10")
+    expect(referral.metadata["signup_ip"]).to eq("203.0.113.10")
   end
 
   it "does not attach when the referrer has referrals turned off" do

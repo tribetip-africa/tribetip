@@ -101,32 +101,48 @@ RSpec.describe "Rack::Attack throttling", type: :request do
     expect(body.dig("error", "code")).to eq("rate_limited")
   end
 
-  it "rate limits repeated sign-ups with a referral code from the same IP" do
+  it "rate limits repeated payout setups with a referral code from the same IP" do
     Rack::Attack.reset!
-    create_creator(username: "signup_ref_target")
+    create_creator(username: "onboard_ref_target")
     limit = ENV.fetch("RACK_ATTACK_SIGNUP_REFERRAL_LIMIT", 10).to_i
 
     limit.times do |index|
-      post "/tribes.json", params: {
-        tribe: {
-          email: "referral-signup-#{index}@tribetip.africa",
-          password: "securepass123",
-          password_confirmation: "securepass123",
-          username: "ref_signup_#{index}",
-          referral_code: "signup_ref_target"
-        }
-      }, as: :json
+      tribe = create_tribe(username: "ref_onboard_#{index}")
+      tribe.update!(
+        paystack_customer_code: "cus_manual_#{tribe.id}",
+        paystack_subaccount_code: nil,
+        onboarding_completed_at: nil
+      )
+
+      post "/me/paystack/onboarding",
+           params: {
+             onboarding: {
+               settlement_bank: "057",
+               account_number: "0123456789",
+               referral_code: "onboard_ref_target"
+             }
+           },
+           headers: bearer_token_for(tribe),
+           as: :json
     end
 
-    post "/tribes.json", params: {
-      tribe: {
-        email: "referral-signup-overflow@tribetip.africa",
-        password: "securepass123",
-        password_confirmation: "securepass123",
-        username: "ref_signup_overflow",
-        referral_code: "signup_ref_target"
-      }
-    }, as: :json
+    overflow = create_tribe(username: "ref_onboard_overflow")
+    overflow.update!(
+      paystack_customer_code: "cus_manual_#{overflow.id}",
+      paystack_subaccount_code: nil,
+      onboarding_completed_at: nil
+    )
+
+    post "/me/paystack/onboarding",
+         params: {
+           onboarding: {
+             settlement_bank: "057",
+             account_number: "0123456789",
+             referral_code: "onboard_ref_target"
+           }
+         },
+         headers: bearer_token_for(overflow),
+         as: :json
 
     expect(response).to have_http_status(429)
   end

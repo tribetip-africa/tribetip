@@ -13,6 +13,7 @@ module Tribetip
     WIDGET_CONFIG_PATH = "/widget/config"
     ACCOUNT_NUMBER_REVEAL_PATH = "/me/paystack/account_number"
     SESSION_REFRESH_PATH = "/tribes/session/refresh"
+    PAYSTACK_ONBOARDING_PATH = "/me/paystack/onboarding"
 
     SIGN_UP_PATH = "/tribes"
     EARLY_ACCESS_PATTERN = %r{\A/early_access/([A-Za-z0-9_-]{20,48})\z}
@@ -61,6 +62,10 @@ module Tribetip
 
     def early_access_path?(request)
       request.get? && request.path.match?(EARLY_ACCESS_PATTERN)
+    end
+
+    def paystack_onboarding_path?(request)
+      request.post? && normalize(request.path) == PAYSTACK_ONBOARDING_PATH
     end
   end
 end
