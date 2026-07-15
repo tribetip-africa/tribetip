@@ -15,6 +15,7 @@ module Tribetip
     SESSION_REFRESH_PATH = "/tribes/session/refresh"
 
     SIGN_UP_PATH = "/tribes"
+    EARLY_ACCESS_PATTERN = %r{\A/early_access/([A-Za-z0-9_-]{20,48})\z}
 
     module_function
 
@@ -56,6 +57,10 @@ module Tribetip
 
     def sign_up_path?(request)
       request.post? && normalize(request.path) == SIGN_UP_PATH
+    end
+
+    def early_access_path?(request)
+      request.get? && request.path.match?(EARLY_ACCESS_PATTERN)
     end
   end
 end
