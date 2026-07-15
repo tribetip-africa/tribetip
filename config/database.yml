@@ -3,6 +3,7 @@ default: &default
   encoding: unicode
   pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS") { 5 } } %>
   host: <%= ENV.fetch("DB_HOST", ENV.fetch("PGHOST", "localhost")) %>
+  port: <%= ENV.fetch("DB_PORT", ENV.fetch("PGPORT", "5432")) %>
   username: <%= ENV.fetch("DB_USERNAME", ENV.fetch("PGUSER", ENV["USER"])) %>
   password: <%= ENV.fetch("DB_PASSWORD", ENV["PGPASSWORD"]) %>
 
@@ -26,25 +27,27 @@ production:
   primary: &primary_production
     <<: *default
     host: <%= ENV.fetch("DB_HOST", "localhost") %>
+    port: <%= ENV.fetch("DB_PORT", ENV.fetch("PGPORT", "5432")) %>
     database: <%= ENV.fetch("DB_DATABASE", "tribetip_production") %>
     username: <%= ENV.fetch("DB_USERNAME", "tribetip") %>
     password: <%= ENV["TRIBETIP_DATABASE_PASSWORD"] %>
   primary_replica:
     <<: *default
     host: <%= ENV.fetch("DB_REPLICA_HOST", ENV.fetch("DB_HOST", "localhost")) %>
+    port: <%= ENV.fetch("DB_REPLICA_PORT", ENV.fetch("DB_PORT", ENV.fetch("PGPORT", "5432"))) %>
     database: <%= ENV.fetch("DB_REPLICA_DATABASE", ENV.fetch("DB_DATABASE", "tribetip_production")) %>
     username: <%= ENV.fetch("DB_REPLICA_USERNAME", ENV.fetch("DB_USERNAME", "tribetip")) %>
     password: <%= ENV.fetch("DB_REPLICA_PASSWORD", ENV["TRIBETIP_DATABASE_PASSWORD"]) %>
     replica: true
   cache:
     <<: *primary_production
-    database: tribetip_production_cache
+    database: <%= ENV.fetch("DB_CACHE_DATABASE", "#{ENV.fetch("DB_DATABASE", "tribetip_production")}_cache") %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: tribetip_production_queue
+    database: <%= ENV.fetch("DB_QUEUE_DATABASE", "#{ENV.fetch("DB_DATABASE", "tribetip_production")}_queue") %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: tribetip_production_cable
+    database: <%= ENV.fetch("DB_CABLE_DATABASE", "#{ENV.fetch("DB_DATABASE", "tribetip_production")}_cable") %>
     migrations_paths: db/cable_migrate
