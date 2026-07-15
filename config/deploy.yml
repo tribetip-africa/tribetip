@@ -1,33 +1,32 @@
+<% require "dotenv"; Dotenv.load(".env", ".kamal/secrets") -%>
 # Name of your application. Used to uniquely configure containers.
 service: tribetip
 
-# Name of the container image.
-image: your-user/tribetip
+# Name of the container image (pushed to GHCR).
+image: tribetip-africa/tribetip
 
-# Deploy to these servers.
+# Host IP / hostname comes from .kamal/secrets (gitignored) — see .kamal/secrets.example
 servers:
   web:
-    - 192.168.0.1
+    - <%= ENV.fetch("KAMAL_SERVER_IP") %>
   job:
     hosts:
-      - 192.168.0.1
+      - <%= ENV.fetch("KAMAL_SERVER_IP") %>
     cmd: bin/jobs
 
-# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
-# Remove this section when using multiple web servers and ensure you terminate SSL at your load balancer.
-#
-# Note: If using Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
+# IP-only access (no domain). SSL/Let's Encrypt needs a hostname, so keep ssl off.
+# With no host set, kamal-proxy forwards all requests on :80 to this app.
 proxy:
-  ssl: true
-  host: app.example.com
+  ssl: false
+
+# First boot runs db:prepare; allow longer than the default 30s.
+deploy_timeout: 90
 
 # Credentials for your image host.
 registry:
-  # Specify the registry server, if you're not using Docker Hub
-  # server: registry.digitalocean.com / ghcr.io / ...
-  username: your-user
-
-  # Always use an access token rather than real password when possible.
+  server: ghcr.io
+  username:
+    - KAMAL_REGISTRY_USERNAME
   password:
     - KAMAL_REGISTRY_PASSWORD
 
@@ -37,6 +36,12 @@ env:
     - RAILS_MASTER_KEY
     - DEVISE_JWT_SECRET_KEY
     - TRIBETIP_DATABASE_PASSWORD
+    - DB_HOST
+    - DB_PORT
+    - DB_DATABASE
+    - DB_USERNAME
+    - TRIBETIP_API_URL
+    - APP_HOSTS
   clear:
     # Dedicated Solid Queue workers run in the job container (see servers.job above).
     SOLID_QUEUE_IN_PUMA: false
@@ -44,24 +49,11 @@ env:
     RAILS_MAX_THREADS: 5
     DB_POOL: 12
 
-    # Set number of cores available to the application on each server (default: 1).
     # WEB_CONCURRENCY: 2
-
-    # Primary PostgreSQL (writes + migrations).
-    # DB_HOST: 192.168.0.2
-    # DB_DATABASE: tribetip_production
-    # DB_USERNAME: tribetip
-
-    # Read replica (reads). Defaults to DB_HOST when unset.
-    # DB_REPLICA_HOST: 192.168.0.3
-
-    # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
     TRIBETIP_PLATFORM_URL: https://tribetip.africa
-    TRIBETIP_API_URL: https://api.tribetip.africa
-    CORS_ALLOWED_ORIGINS: https://tribetip.africa
-    APP_HOSTS: api.tribetip.africa,tribetip.africa
+    CORS_ALLOWED_ORIGINS: https://tribetip.africa,http://localhost:3000
     TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "true"
 
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
@@ -72,56 +64,12 @@ aliases:
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
 
-
-# Use a persistent storage volume for sqlite database files and local Active Storage files.
-# Recommended to change this to a mounted volume path that is backed up off server.
+# Persistent storage for Active Storage / local files.
 volumes:
   - "tribetip_storage:/rails/storage"
 
-
-# Bridge fingerprinted assets, like JS and CSS, between versions to avoid
-# hitting 404 on in-flight requests. Combines all files from new and old
-# version inside the asset_path.
-asset_path: /rails/public/assets
-
-# Configure the image builder.
 builder:
-  arch: amd64
+  arch: arm64
 
-  # # Build image via remote server (useful for faster amd64 builds on arm64 computers)
-  # remote: ssh://docker@docker-builder-server
-  #
-  # # Pass arguments and secrets to the Docker build process
-  # args:
-  #   RUBY_VERSION: 3.3.6
-  # secrets:
-  #   - GITHUB_TOKEN
-  #   - RAILS_MASTER_KEY
-
-# Use a different ssh user than root
-# ssh:
-#   user: app
-
-# Use accessory services (secrets come from .kamal/secrets).
-# accessories:
-#   db:
-#     image: mysql:8.0
-#     host: 192.168.0.2
-#     # Change to 3306 to expose port to the world instead of just local network.
-#     port: "127.0.0.1:3306:3306"
-#     env:
-#       clear:
-#         MYSQL_ROOT_HOST: '%'
-#       secret:
-#         - MYSQL_ROOT_PASSWORD
-#     files:
-#       - config/mysql/production.cnf:/etc/mysql/my.cnf
-#       - db/production.sql:/docker-entrypoint-initdb.d/setup.sql
-#     directories:
-#       - data:/var/lib/mysql
-#   redis:
-#     image: redis:7.0
-#     host: 192.168.0.2
-#     port: 6379
-#     directories:
-#       - data:/data
+ssh:
+  user: <%= ENV.fetch("KAMAL_SSH_USER", "ubuntu") %>
