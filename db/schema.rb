@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_09_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_14_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -44,6 +44,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_150000) do
     t.index ["tribe_id", "created_at"], name: "index_creator_notifications_on_tribe_id_and_created_at"
     t.index ["tribe_id", "read_at"], name: "index_creator_notifications_on_tribe_id_and_read_at"
     t.index ["tribe_id"], name: "index_creator_notifications_on_tribe_id"
+  end
+
+  create_table "early_access_invites", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "email", null: false
+    t.string "token", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "used_at"
+    t.uuid "tribe_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_early_access_invites_on_email"
+    t.index ["token"], name: "index_early_access_invites_on_token", unique: true
+    t.index ["tribe_id"], name: "index_early_access_invites_on_tribe_id"
+    t.index ["used_at", "revoked_at", "expires_at"], name: "idx_on_used_at_revoked_at_expires_at_14eee96eda"
   end
 
   create_table "idempotency_keys", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -299,6 +314,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_09_150000) do
   end
 
   add_foreign_key "creator_notifications", "tribes"
+  add_foreign_key "early_access_invites", "tribes"
   add_foreign_key "paystack_events", "tips"
   add_foreign_key "paystack_settlements", "paystack_events"
   add_foreign_key "paystack_settlements", "tips"

@@ -13,6 +13,15 @@
 /config/master.key
 /config/credentials/*.key
 /.kamal/secrets
+/.kamal/secrets-*
+/.kamal/secrets.*
+!/.kamal/secrets.example
+*.pem
+*.p12
+id_rsa
+id_ed25519
+**/id_rsa
+**/id_ed25519
 
 # Logs, temp, and runtime
 /log/*
@@ -82,7 +91,8 @@ docker-compose.override.yml
 # Misc local scratch
 .scratch/
 *.local
-/scripts/loadtest/results/*.json
+/scripts/loadtest/results/*
+!/scripts/loadtest/results/.gitkeep
 
 # Cursor (track project rules only)
 .cursor/*

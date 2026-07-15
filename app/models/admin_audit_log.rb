@@ -8,6 +8,8 @@ class AdminAuditLog < ApplicationRecord
     paystack_audit_sync
     platform_reconciliation_run
     reject_referral
+    create_early_access_invite
+    revoke_early_access_invite
   ].freeze
 
   belongs_to :admin, class_name: "Tribe", foreign_key: :admin_id, inverse_of: false

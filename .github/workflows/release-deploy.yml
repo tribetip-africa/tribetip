@@ -1,0 +1,205 @@
+name: Release and deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver without v prefix (e.g. 1.0.0). Leave empty to use run number."
+        required: false
+        type: string
+      setup:
+        description: "First-time server bootstrap (kamal setup instead of deploy)"
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: api-release-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version tag
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            TAG="v${{ inputs.version }}"
+            TAG="${TAG#vv}"
+          else
+            TAG="v0.0.${{ github.run_number }}"
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "Invalid version tag: $TAG (expected vX.Y.Z)"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using release tag: $TAG"
+
+      - name: Create and push tag (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --generate-notes \
+              --target "${{ github.sha }}"
+          fi
+
+  deploy:
+    name: Deploy with Kamal
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      KAMAL_REGISTRY_USERNAME: ${{ github.actor }}
+      KAMAL_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+      KAMAL_SSH_USER: ${{ secrets.KAMAL_SSH_USER }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_DATABASE: ${{ secrets.DB_DATABASE }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      TRIBETIP_DATABASE_PASSWORD: ${{ secrets.TRIBETIP_DATABASE_PASSWORD }}
+      TRIBETIP_API_URL: ${{ secrets.TRIBETIP_API_URL }}
+      APP_HOSTS: ${{ secrets.APP_HOSTS }}
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+      DEVISE_JWT_SECRET_KEY: ${{ secrets.DEVISE_JWT_SECRET_KEY }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Set up QEMU (arm64 builds on amd64 runners)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+
+      - name: Trust server host key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
+
+      - name: Verify required secrets
+        env:
+          HAS_SSH_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY != '' }}
+        run: |
+          missing=0
+          for name in \
+            KAMAL_SERVER_IP \
+            DB_HOST DB_PORT DB_DATABASE DB_USERNAME \
+            TRIBETIP_DATABASE_PASSWORD TRIBETIP_API_URL APP_HOSTS \
+            RAILS_MASTER_KEY DEVISE_JWT_SECRET_KEY
+          do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing repository secret: $name"
+              missing=1
+            fi
+          done
+          if [[ "$HAS_SSH_KEY" != "true" ]]; then
+            echo "Missing repository secret: KAMAL_SSH_PRIVATE_KEY"
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Write Kamal secrets
+        run: |
+          # Expand job env into .kamal/secrets (unquoted heredoc on purpose).
+          cat > .kamal/secrets <<EOF
+          KAMAL_REGISTRY_USERNAME=${KAMAL_REGISTRY_USERNAME}
+          KAMAL_REGISTRY_PASSWORD=${KAMAL_REGISTRY_PASSWORD}
+          KAMAL_SERVER_IP=${KAMAL_SERVER_IP}
+          KAMAL_SSH_USER=${KAMAL_SSH_USER:-ubuntu}
+          DB_HOST=${DB_HOST}
+          DB_PORT=${DB_PORT}
+          DB_DATABASE=${DB_DATABASE}
+          DB_USERNAME=${DB_USERNAME}
+          TRIBETIP_DATABASE_PASSWORD=${TRIBETIP_DATABASE_PASSWORD}
+          TRIBETIP_API_URL=${TRIBETIP_API_URL}
+          APP_HOSTS=${APP_HOSTS}
+          RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+          DEVISE_JWT_SECRET_KEY=${DEVISE_JWT_SECRET_KEY}
+          EOF
+          sed -i 's/^[[:space:]]*//' .kamal/secrets
+          # Never print secret values — only confirm keys are non-empty.
+          while IFS= read -r line; do
+            key="${line%%=*}"
+            val="${line#*=}"
+            if [[ -z "$val" ]]; then
+              echo "Empty secret after write: $key"
+              exit 1
+            fi
+            echo "ok $key (len=${#val})"
+          done < .kamal/secrets
+
+      - name: Deploy
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.setup }}" == "true" ]]; then
+            bin/kamal setup -v
+          else
+            bin/kamal deploy -v
+          fi
+
+      - name: Smoke check
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS --max-time 10 "http://${KAMAL_SERVER_IP}/up"; then
+              echo
+              echo "API is up"
+              exit 0
+            fi
+            echo "Attempt $i failed; retrying..."
+            sleep 5
+          done
+          echo "Smoke check failed"
+          exit 1

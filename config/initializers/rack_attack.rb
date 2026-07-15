@@ -96,6 +96,22 @@ class Rack::Attack
     Tribetip::RackAttackKeys.signup_referral(req)
   end
 
+  throttle(
+    "early_access/lookup",
+    limit: ENV.fetch("RACK_ATTACK_EARLY_ACCESS_LIMIT", 30).to_i,
+    period: 60.seconds
+  ) do |req|
+    Tribetip::RackAttackKeys.early_access_lookup(req) if Tribetip::RackAttackPaths.early_access_path?(req)
+  end
+
+  throttle(
+    "signup_early_access/ip",
+    limit: ENV.fetch("RACK_ATTACK_SIGNUP_EARLY_ACCESS_LIMIT", 10).to_i,
+    period: 60.seconds
+  ) do |req|
+    Tribetip::RackAttackKeys.signup_early_access(req)
+  end
+
   self.throttled_responder = lambda do |_request|
     tribetip_error = Tribetip::Errors::RateLimit.new
     [

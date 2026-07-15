@@ -27,6 +27,7 @@ const profileLatency = new Trend("profile_latency", true);
 const healthLatency = new Trend("health_latency", true);
 const tipCreateLatency = new Trend("tip_create_latency", true);
 const tipCheckoutLatency = new Trend("tip_checkout_latency", true);
+const tipReconcileLatency = new Trend("tip_reconcile_latency", true);
 const checkoutServerErrors = new Counter("checkout_server_errors_5xx");
 const tipsCreated = new Counter("tips_created");
 const tipsCheckoutPolled = new Counter("tips_checkout_polled");
