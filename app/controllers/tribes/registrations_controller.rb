@@ -4,6 +4,7 @@ module Tribes
     include SecureHttpCaching
     include Tribetip::Errors::Handler
     include TribeSerializable
+    include SetsAuthCookie
 
     respond_to :json
 
@@ -32,11 +33,20 @@ module Tribes
         "Signed up successfully. Please confirm your email before signing in."
       end
 
-      render json: {
+      payload = {
         message: message,
         tribe: tribe_json(resource.reload),
         confirmation_required: !resource.confirmed?
-      }, status: :created
+      }
+
+      if resource.confirmed?
+        token, _payload = Warden::JWTAuth::UserEncoder.new.call(resource, :tribe, nil)
+        csrf_token = issue_auth_cookies!(token) if Tribetip::Security::AuthCookie.enabled?
+        payload[:token] = token
+        payload[:csrf_token] = csrf_token if csrf_token.present?
+      end
+
+      render json: payload, status: :created
     rescue ActiveRecord::RecordInvalid
       render_error(
         Tribetip::Errors::Validation.new(
