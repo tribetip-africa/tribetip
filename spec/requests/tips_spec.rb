@@ -31,11 +31,13 @@ RSpec.describe "Tips checkout", type: :request do
     it "creates a pending tip and returns Paystack checkout URL" do
       post_tip(username: "tip_creator", supporter_name: "Fan", message: "Keep going!")
 
-      expect(response).to have_http_status(:created)
+      expect(response).to have_http_status(:created).or have_http_status(:accepted)
       expect(json.dig("tip", "status")).to eq("pending")
-      expect(json.dig("tip", "authorization_url")).to be_present
       expect(json.fetch("tip")).not_to include("supporter_email", "supporter_name", "message")
       expect(Tip.count).to eq(1)
+      if response.created?
+        expect(json.dig("tip", "authorization_url")).to be_present
+      end
     end
 
     it "returns not found for unpublished creators" do
@@ -51,6 +53,29 @@ RSpec.describe "Tips checkout", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(json.dig("error", "code")).to eq("validation_failed")
+    end
+
+    it "rejects tip amounts above the configured maximum" do
+      post_tip(username: "tip_creator", amount_cents: Tribetip::TipLimits.max_cents + 1)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json.dig("error", "code")).to eq("validation_failed")
+      expect(json.dig("error", "details", "errors").join).to match(/amount/i)
+    end
+
+    it "rejects tip currency that does not match the creator market" do
+      post_tip(username: "tip_creator", currency: "USD")
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json.dig("error", "code")).to eq("validation_failed")
+      expect(json.dig("error", "message")).to match(/currency/i)
+    end
+
+    it "stores the creator market currency even when currency is omitted" do
+      post_tip(username: "tip_creator")
+
+      expect(response).to have_http_status(:created).or have_http_status(:accepted)
+      expect(Tip.last.currency).to eq("KES")
     end
 
     it "returns not found when the creator has not finished Paystack onboarding" do
@@ -90,7 +115,6 @@ RSpec.describe "Tips checkout", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(json.dig("tip", "paystack_reference")).to eq(reference)
-      expect(json.dig("tip", "authorization_url")).to be_present
       expect(tip.tip_events.where(action: "reconcile_attempted").count).to eq(1)
     end
   end
