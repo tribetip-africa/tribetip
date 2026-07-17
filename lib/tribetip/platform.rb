@@ -42,7 +42,11 @@ module Tribetip
         return explicit unless explicit.empty?
 
         origins = [ app_url ]
-        origins << app_url.sub("localhost", "127.0.0.1") if app_url.include?("localhost")
+        if app_url.include?("localhost")
+          origins << app_url.sub("localhost", "127.0.0.1")
+        elsif app_url.include?("127.0.0.1")
+          origins << app_url.sub("127.0.0.1", "localhost")
+        end
         origins.uniq
       end
 
