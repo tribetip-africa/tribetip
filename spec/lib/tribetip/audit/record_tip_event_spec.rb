@@ -14,7 +14,7 @@ RSpec.describe Tribetip::Audit::RecordTipEvent do
 
     tribe.tips.create!(
       amount_cents: 50_000,
-      currency: "NGN",
+      currency: "KES",
       paystack_reference: reference,
       supporter_email: "fan@tribetip.africa",
       status: "pending"
