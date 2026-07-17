@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Ensure the remote builder can push to GHCR (BuildKit uses the server's docker auth
+# when builder.local is false — see BUILDKIT_NO_CLIENT_TOKEN).
+set -euo pipefail
+
+user="${KAMAL_REGISTRY_USERNAME:-}"
+password="${KAMAL_REGISTRY_PASSWORD:-}"
+host="${KAMAL_HOSTS%%,*}"
+ssh_user="${KAMAL_SSH_USER:-ubuntu}"
+
+if [[ -z "$user" || -z "$password" || -z "$host" ]]; then
+  echo "pre-connect: missing registry credentials or KAMAL_HOSTS; skipping remote GHCR login"
+  exit 0
+fi
+
+echo "Logging into ghcr.io on ${ssh_user}@${host} for remote builds..."
+printf '%s\n' "$password" | ssh -o BatchMode=yes -o ConnectTimeout=15 \
+  "${ssh_user}@${host}" \
+  "docker login ghcr.io -u $(printf '%q' "$user") --password-stdin"
