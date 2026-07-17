@@ -17,7 +17,17 @@ class TipsController < ApplicationController
     market = Tribetip::Paystack::Market.for_tribe(tribe)
     reference = Tip.generate_reference
     amount_cents = tip_params[:amount_cents].to_i
-    currency = tip_params[:currency].presence || tribe.currency
+    # Always bill in the creator's market currency — never trust a client override.
+    currency = market.currency
+
+    if tip_params[:currency].present? && !market.currency_matches?(tip_params[:currency])
+      return render_error(
+        Tribetip::Errors::Validation.new(
+          "Tip currency must match the creator's currency (#{currency}).",
+          details: { errors: [ "currency must be #{currency}" ] }
+        )
+      )
+    end
 
     tip = tribe.tips.build(
       amount_cents: amount_cents,
