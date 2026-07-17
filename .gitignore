@@ -98,3 +98,7 @@ docker-compose.override.yml
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+
+# Documentation — track README only; keep other markdown local
+*.md
+!/README.md
