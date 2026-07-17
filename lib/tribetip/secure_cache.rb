@@ -100,8 +100,15 @@ module Tribetip
       end
 
       def sensitive_key?(key)
-        normalized = key.to_s.downcase
-        FORBIDDEN_KEY_FRAGMENTS.any? { |fragment| normalized.include?(fragment) }
+        key.to_s.downcase.split("/").any? do |segment|
+          next false if opaque_dynamic_segment?(segment)
+
+          FORBIDDEN_KEY_FRAGMENTS.any? { |fragment| segment.include?(fragment) }
+        end
+      end
+
+      def opaque_dynamic_segment?(segment)
+        segment.match?(/\A(?:acct|cus|sub|trf|inv|evt)_[a-z0-9]+\z/i)
       end
     end
   end
