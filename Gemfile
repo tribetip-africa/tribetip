@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "rails", "~> 8.0.5"
+gem "rails", "~> 8.1"
 gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -30,8 +30,8 @@ group :development, :test do
   gem "bundler-audit", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
-  gem "rubocop", "~> 1.87"
-  gem "rubocop-rspec", "~> 3.9"
+  gem "rubocop", "~> 1.88"
+  gem "rubocop-rspec", "~> 3.10"
 end
 
 gem "devise", "~> 5.0"
