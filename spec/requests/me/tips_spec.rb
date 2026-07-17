@@ -6,7 +6,7 @@ RSpec.describe "Me tips", type: :request do
   def create_tip_for(tribe, reference: "tip_test_ref")
     tribe.tips.create!(
       amount_cents: 50_000,
-      currency: "NGN",
+      currency: "KES",
       status: "paid",
       paystack_reference: reference,
       supporter_email: "fan@tribetip.africa",
