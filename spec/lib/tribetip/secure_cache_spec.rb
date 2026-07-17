@@ -24,6 +24,14 @@ RSpec.describe Tribetip::SecureCache do
         described_class.fetch("tribe/session_token", scope: :public) { "secret" }
       }.to raise_error(described_class::SecurityError)
     end
+
+    it "allows paystack verify keys when opaque ids contain forbidden substrings" do
+      result = described_class.fetch("paystack_verify/ACCT_cx99kzvcjwt1g2g", scope: :public) do
+        { verified: true, message: "ok" }
+      end
+
+      expect(result).to eq(verified: true, message: "ok")
+    end
   end
 
   describe ".bump_version!" do
