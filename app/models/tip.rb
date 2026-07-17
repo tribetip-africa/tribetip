@@ -15,6 +15,8 @@ class Tip < ApplicationRecord
   validates :supporter_email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :message, length: { maximum: 280 }, allow_blank: true
   validates :paid_via, inclusion: { in: VALID_PAID_VIA }, allow_nil: true
+  validate :amount_within_tip_limits
+  validate :currency_matches_tribe
 
   scope :paid, -> { where(status: "paid") }
   scope :pending_older_than, lambda { |duration|
@@ -94,6 +96,23 @@ class Tip < ApplicationRecord
   end
 
   private
+
+  def amount_within_tip_limits
+    return if amount_cents.blank?
+    return if Tribetip::TipLimits.within_limits?(amount_cents)
+
+    errors.add(
+      :amount_cents,
+      "must be between #{Tribetip::TipLimits.min_cents} and #{Tribetip::TipLimits.max_cents}"
+    )
+  end
+
+  def currency_matches_tribe
+    return if tribe.blank? || currency.blank?
+    return if currency.to_s.upcase == tribe.currency.to_s.upcase
+
+    errors.add(:currency, "must match the creator's currency (#{tribe.currency})")
+  end
 
   def enqueue_referral_processing
     return unless saved_change_to_status? && paid?
