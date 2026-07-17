@@ -31,7 +31,7 @@ RSpec.describe "Admin tip investigation", type: :request do
     )
     tip = tribe.tips.create!(
       amount_cents: 50_000,
-      currency: "NGN",
+      currency: "KES",
       paystack_reference: "tip_investigate_ref",
       supporter_email: "fan@tribetip.africa",
       status: "pending"
