@@ -40,6 +40,8 @@ env:
     - DB_PORT
     - DB_DATABASE
     - DB_USERNAME
+    - DB_REPLICA_HOST
+    - DB_REPLICA_PORT
     - TRIBETIP_API_URL
     - APP_HOSTS
   clear:
@@ -56,6 +58,49 @@ env:
     CORS_ALLOWED_ORIGINS: https://tribetip.africa,http://localhost:3000
     TRIBETIP_REQUIRE_EMAIL_CONFIRMATION: "true"
 
+# Primary + streaming read replica (Bitnami). Boot with:
+#   bin/kamal accessory boot postgres
+#   bin/kamal accessory boot postgres_replica
+# kamal setup boots all accessories before the app.
+accessories:
+  postgres:
+    # Public versioned tags live under bitnamilegacy after Bitnami catalog change.
+    image: bitnamilegacy/postgresql:17
+    host: <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    port: "35432:5432"
+    directories:
+      - postgres-primary-data:/bitnami/postgresql
+    env:
+      clear:
+        POSTGRESQL_REPLICATION_MODE: master
+        POSTGRESQL_REPLICATION_USER: repl_user
+        POSTGRESQL_USERNAME: <%= ENV.fetch("DB_USERNAME") %>
+        POSTGRESQL_DATABASE: <%= ENV.fetch("DB_DATABASE") %>
+      secret:
+        - POSTGRESQL_PASSWORD
+        - POSTGRESQL_REPLICATION_PASSWORD
+        - POSTGRESQL_POSTGRES_PASSWORD
+
+  postgres_replica:
+    service: tribetip-postgres-replica
+    # Public versioned tags live under bitnamilegacy after Bitnami catalog change.
+    image: bitnamilegacy/postgresql:17
+    host: <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    port: "35433:5432"
+    directories:
+      - postgres-replica-data:/bitnami/postgresql
+    env:
+      clear:
+        POSTGRESQL_REPLICATION_MODE: slave
+        POSTGRESQL_REPLICATION_USER: repl_user
+        POSTGRESQL_MASTER_HOST: tribetip-postgres
+        POSTGRESQL_MASTER_PORT_NUMBER: "5432"
+        POSTGRESQL_USERNAME: <%= ENV.fetch("DB_USERNAME") %>
+      secret:
+        - POSTGRESQL_PASSWORD
+        - POSTGRESQL_REPLICATION_PASSWORD
+        - POSTGRESQL_POSTGRES_PASSWORD
+
 # Aliases are triggered with "bin/kamal <alias>". You can overwrite arguments on invocation:
 # "bin/kamal logs -r job" will tail logs from the first server in the job section.
 aliases:
@@ -68,8 +113,14 @@ aliases:
 volumes:
   - "tribetip_storage:/rails/storage"
 
+# Build on the droplet (native arm64). Docker Desktop on macOS often times out
+# reaching ghcr.io; remote build skips local `docker login` / push via the broken path.
+# `local: false` is required on Apple Silicon so Kamal does not prefer the Mac builder
+# when both sides are arm64.
 builder:
   arch: arm64
+  local: false
+  remote: ssh://<%= ENV.fetch("KAMAL_SSH_USER", "ubuntu") %>@<%= ENV.fetch("KAMAL_SERVER_IP") %>
 
 ssh:
   user: <%= ENV.fetch("KAMAL_SSH_USER", "ubuntu") %>
