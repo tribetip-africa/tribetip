@@ -171,7 +171,7 @@ RSpec.describe "Paystack onboarding", type: :request do
            as: :json
 
       expect(response).to have_http_status(:bad_request)
-      expect(json.dig("error", "message")).to match(/Idempotency-Key/)
+      expect(json.dig("error", "message")).to include("Idempotency-Key")
     end
   end
 end
