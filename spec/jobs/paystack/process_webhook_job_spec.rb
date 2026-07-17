@@ -14,7 +14,7 @@ RSpec.describe Paystack::ProcessWebhookJob, type: :job do
     )
     tribe.tips.create!(
       amount_cents: 50_000,
-      currency: "NGN",
+      currency: "KES",
       status: "pending",
       paystack_reference: reference,
       supporter_email: "fan@tribetip.africa"
