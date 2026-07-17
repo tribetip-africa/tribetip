@@ -111,8 +111,9 @@ export function handleSummary(data) {
     "",
   ];
 
+  const summaryPath = __ENV.SUMMARY_PATH || "/results/summary.json";
   return {
     stdout: lines.join("\n"),
-    "/results/summary.json": JSON.stringify(data, null, 2),
+    [summaryPath]: JSON.stringify(data, null, 2),
   };
 }
