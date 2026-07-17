@@ -15,7 +15,7 @@ RSpec.describe "Me profile", type: :request do
       complete_stub_paystack_onboarding!(tribe)
       tribe.tips.create!(
         amount_cents: 50_000,
-        currency: "NGN",
+        currency: "KES",
         status: "paid",
         paystack_reference: "tip_profile_metric",
         supporter_email: "fan@example.com",
